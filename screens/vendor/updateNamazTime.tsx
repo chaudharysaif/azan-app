@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import API from '../api/endpoints';
+import BackButton from '../../components/back-button';
 
 const API_BASE = 'https://slogan-mud-curing.ngrok-free.dev/api';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -209,12 +210,12 @@ export default function UpdateNamazTime({ route, navigation }: any) {
     if (loading) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <StatusBar barStyle="light-content" backgroundColor="#1B6B2F" />
+                <StatusBar barStyle="light-content" backgroundColor="#199b4d" />
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Edit Namaz Times</Text>
                 </View>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#1B6B2F" />
+                    <ActivityIndicator size="large" color="#199b4d" />
                     <Text style={styles.loadingText}>Loading namaz times…</Text>
                 </View>
             </SafeAreaView>
@@ -223,13 +224,13 @@ export default function UpdateNamazTime({ route, navigation }: any) {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="light-content" backgroundColor="#1B6B2F" />
+            <StatusBar barStyle="light-content" backgroundColor="#199b4d" />
 
             {/* ── Saving overlay ── */}
             <Modal transparent visible={saving} animationType="fade">
                 <View style={styles.savingOverlay}>
                     <View style={styles.savingCard}>
-                        <ActivityIndicator size="large" color="#1B6B2F" />
+                        <ActivityIndicator size="large" color="#199b4d" />
                         <Text style={styles.savingText}>Saving namaz times…</Text>
                         <Text style={styles.savingSubText}>Notifying all followers</Text>
                     </View>
@@ -238,9 +239,7 @@ export default function UpdateNamazTime({ route, navigation }: any) {
 
             {/* ── Header ── */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack?.()}>
-                    <Text style={styles.backArrow}>←</Text>
-                </TouchableOpacity>
+                <BackButton />
 
                 <View style={styles.headerTextGroup}>
                     <Text style={styles.headerTitle}>Edit Namaz Times</Text>
@@ -270,8 +269,8 @@ export default function UpdateNamazTime({ route, navigation }: any) {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={() => fetchMasjidData(true)}
-                        colors={['#1B6B2F']}
-                        tintColor="#1B6B2F"
+                        colors={['#199b4d']}
+                        tintColor="#199b4d"
                         title="Pull to refresh"
                     />
                 }
@@ -359,7 +358,7 @@ export default function UpdateNamazTime({ route, navigation }: any) {
     );
 }
 
-const GREEN = '#1C8846';
+const GREEN = '#199b4d';
 const GREEN_LIGHT = '#E8F5EC';
 const GREEN_BORDER = '#A8D5B5';
 
@@ -379,15 +378,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-
     headerTextGroup: {
         flex: 1,
         alignItems: 'center',
@@ -396,13 +386,6 @@ const styles = StyleSheet.create({
 
     headerRightSpace: {
         width: 36,
-    },
-
-    backArrow: {
-        color: '#fff',
-        fontSize: 28,
-        lineHeight: 22,
-        paddingBottom: 12
     },
 
     headerTitle: {

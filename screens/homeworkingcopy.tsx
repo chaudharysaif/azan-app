@@ -1,30 +1,27 @@
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, ActivityIndicator, FlatList, ImageBackground, Alert } from 'react-native';
-import { AudioSession, registerGlobals } from '@livekit/react-native';
-import { Room, RoomEvent } from 'livekit-client';
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    RefreshControl,
+    ActivityIndicator,
+    FlatList,
+    ImageBackground,
+} from 'react-native';
 import API from './api/endpoints';
-import Loader from '../components/loader';
-import { Masjid, PrayerTime } from '../models/masjid';
-
-const API_BASE = 'https://slogan-mud-curing.ngrok-free.dev/api';
 
 export default function Home({ route }: any) {
     const [loading, setLoading] = useState(true);
     const routeMasjidId = route?.params?.masjidId;
     const [masjidId, setMasjidId] = useState<number | null>(null);
-    const [masjid, setMasjid] = useState<Masjid | null>(null);
+    const [masjid, setMasjid] = useState<MasjidDetails | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const navigation = useNavigation<any>();
     const [mutedPrayers, setMutedPrayers] = useState<number[]>([]);
-
-    // ── Live Azan state ────────────────────────────────────────────────────────
-    const [masjidIsLive, setMasjidIsLive] = useState(false);
-    const [listening, setListening] = useState(false);
-    const [connecting, setConnecting] = useState(false);
-    const roomRef = useRef<Room | null>(null);
-    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const toggleMute = (id: number) => {
         setMutedPrayers(prev =>
@@ -34,26 +31,26 @@ export default function Home({ route }: any) {
         );
     };
 
-    // type PrayerTime = {
-    //     id: number;
-    //     prayer_name: string;
-    //     adhan_time: string;
-    //     prayer_time: string;
-    //     is_live: string;
-    //     status: string;
-    // };
+    type PrayerTime = {
+        id: number;
+        prayer_name: string;
+        adhan_time: string;
+        prayer_time: string;
+        is_live: string;
+        status: string;
+    };
 
-    // type MasjidDetails = {
-    //     id: number;
-    //     name: string;
-    //     city: string;
-    //     map_location: string;
-    //     status: string;
-    //     image: string | null;
-    //     address_line_one: string;
-    //     address_line_two: string;
-    //     masjid_prayer_times: PrayerTime[];
-    // };
+    type MasjidDetails = {
+        id: number;
+        name: string;
+        city: string;
+        map_location: string;
+        status: string;
+        image: string | null;
+        address_line_one: string;
+        address_line_two: string;
+        masjid_prayer_times: PrayerTime[];
+    };
 
     const fetchMasjidDetails = async () => {
         if (!masjidId) return;
@@ -62,6 +59,7 @@ export default function Home({ route }: any) {
                 API.GET_MASJID_DETAILS(masjidId),
             );
             const data = await response.json();
+            console.log("Masjid Details:", data);
             setMasjid(data.data);
         } catch (error) {
             console.log(error);
@@ -105,99 +103,6 @@ export default function Home({ route }: any) {
             fetchMasjidDetails();
         }
     }, [masjidId]);
-
-    const checkLiveStatus = useCallback(async () => {
-        if (!masjidId) return;
-        try {
-            const res = await fetch(`${API_BASE}/user/live/status/${masjidId}`, {
-                headers: {
-                    'ngrok-skip-browser-warning': 'true',
-                    'Accept': 'application/json'
-                },
-            });
-            const json = await res.json();
-            if (json.status === 'success') {
-                setMasjidIsLive(!!json.data.is_live);
-                // If masjid stopped broadcasting while we were listening, disconnect.
-                if (!json.data.is_live && listening) {
-                    await stopListening();
-                }
-            }
-        } catch (e) {
-            console.log('live status check failed', e);
-        }
-    }, [masjidId, listening]);
-
-    useFocusEffect(
-        useCallback(() => {
-            checkLiveStatus();
-            pollRef.current = setInterval(checkLiveStatus, 15000);
-            return () => {
-                if (pollRef.current) clearInterval(pollRef.current);
-            };
-        }, [checkLiveStatus])
-    );
-
-    // ── Speaker toggle: start/stop listening to the live broadcast ────────────
-    const startListening = async () => {
-        if (!masjidId) return;
-        setConnecting(true);
-        try {
-            const res = await fetch(`${API_BASE}/user/live/token/${masjidId}`, {
-                headers: {
-                    'ngrok-skip-browser-warning': 'true',
-                    'Accept': 'application/json'
-                },
-                // add your user auth header here, e.g. Authorization: `Bearer ${userToken}`
-            });
-            const json = await res.json();
-            if (json.status !== 'success') {
-                Alert.alert('Not live', json.message || 'This masjid is not broadcasting right now.');
-                setMasjidIsLive(false);
-                return;
-            }
-            const { token, url } = json.data;
-
-            await AudioSession.startAudioSession();
-
-            const room = new Room();
-            roomRef.current = room;
-
-            room.on(RoomEvent.Disconnected, () => {
-                setListening(false);
-                roomRef.current = null;
-                AudioSession.stopAudioSession().catch(() => { });
-            });
-
-            await room.connect(url, token);
-            // Audio-only room: LiveKit's native audio session on Android plays
-            // subscribed remote tracks automatically — no manual attach needed.
-            setListening(true);
-        } catch (e: any) {
-            console.error('listen error', e);
-            Alert.alert('Connection Error', 'Could not connect to the live Azan. Please try again.');
-            try { await AudioSession.stopAudioSession(); } catch (_) { }
-        } finally {
-            setConnecting(false);
-        }
-    };
-
-    const stopListening = async () => {
-        try { roomRef.current?.disconnect(); } catch (_) { }
-        roomRef.current = null;
-        setListening(false);
-        try { await AudioSession.stopAudioSession(); } catch (_) { }
-    };
-
-    const handleSpeakerToggle = () => {
-        if (listening) {
-            stopListening();
-        } else {
-            startListening();
-        }
-    };
-
-    useEffect(() => () => { stopListening(); }, []);
 
     const formatTime = (time: string) => {
         const [hours, minutes] = time.split(":");
@@ -280,7 +185,11 @@ export default function Home({ route }: any) {
     };
 
     if (loading) {
-        return <Loader size="large" color="#199b4d" />
+        return (
+            <View style={styles.loader}>
+                <ActivityIndicator size="large" color="#199b4d" />
+            </View>
+        )
     }
 
     return (
@@ -288,7 +197,12 @@ export default function Home({ route }: any) {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#199b4d']} tintColor="#199b4d" />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={['#199b4d']}
+                        tintColor="#199b4d"
+                    />
                 }
             >
                 <ImageBackground
@@ -299,33 +213,16 @@ export default function Home({ route }: any) {
                     imageStyle={styles.heroImage}
                 />
 
-                <View style={styles.bodyWrapper}>
+                {/* <View style={styles.header}>
+                    <Text style={styles.greeting}>Assalamu Alaikum</Text>
+                    <Text style={styles.name}> {masjid?.name}</Text>
+                </View> */}
 
-                    {/* ── Live Azan banner — only shows when masjid has turned it on ── */}
-                    {masjidIsLive && (
-                        <View style={styles.liveCard}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.liveTitle}>🔴 Live Azan</Text>
-                                <Text style={styles.liveSub}>
-                                    {masjid?.name} · {listening ? 'Listening now' : 'Tap to listen'}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={handleSpeakerToggle}
-                                style={styles.liveSpeakerButton}
-                                disabled={connecting}
-                            >
-                                {connecting ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={{ fontSize: 22 }}>{listening ? '🔊' : '🔇'}</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                <View style={styles.bodyWrapper}>
 
                     <View style={styles.card}>
                         <Text style={styles.prayerTime}>
+                            {/* {nextPrayer ? formatTime(nextPrayer.prayer_time) : "--"} · {masjid?.name} */}
                             {masjid?.name}
                         </Text>
 
@@ -376,7 +273,42 @@ export default function Home({ route }: any) {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>Salah Time</Text>
+
+                            {/* <TouchableOpacity onPress={() => navigation.navigate("Details", { masjidId })}>
+                                <Text style={styles.seeAll}>See All</Text>
+                            </TouchableOpacity> */}
                         </View>
+
+                        {/* <View style={styles.prayerGrid}>
+                            {masjid?.masjid_prayer_times.map((item, index) => (
+                                <View
+                                    key={item.id}
+                                    style={[
+                                        styles.prayerBox,
+                                        item.id === nextPrayer?.id && styles.activePrayer
+                                    ]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.prayerText,
+                                            item.id === nextPrayer?.id && { color: "#fff" },
+                                        ]}
+                                    >
+                                        {item.prayer_name.charAt(0).toUpperCase() +
+                                            item.prayer_name.slice(1)}
+                                    </Text>
+
+                                    <Text
+                                        style={[
+                                            styles.prayerTimeText,
+                                            item.id === nextPrayer?.id && { color: "#fff" },
+                                        ]}
+                                    >
+                                        {formatTime(item.prayer_time)}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View> */}
 
                         <FlatList
                             data={masjid?.masjid_prayer_times || []}
@@ -442,6 +374,39 @@ export default function Home({ route }: any) {
                         />
                     </View>
 
+
+                    {/* Live Azan Card */}
+                    {/* <View style={styles.liveCard}>
+                        <Text style={styles.liveTitle}>🔊 Live Azan Streaming</Text>
+                        <Text style={styles.liveSub}>
+                            {masjid?.name} · Now broadcasting
+                        </Text>
+                    </View> */}
+
+                    {/* Quick Access */}
+                    {/* <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Quick Access</Text>
+
+                        <View style={styles.quickRow}>
+                            <View style={styles.quickItem}>
+                                <Text style={styles.quickIcon}>🧭</Text>
+                                <Text>Qibla</Text>
+                            </View>
+                            <View style={styles.quickItem}>
+                                <Text style={styles.quickIcon}>📿</Text>
+                                <Text>Tasbeeh</Text>
+                            </View>
+                            <View style={styles.quickItem}>
+                                <Text style={styles.quickIcon}>🤲</Text>
+                                <Text>Dua</Text>
+                            </View>
+                            <View style={styles.quickItem}>
+                                <Text style={styles.quickIcon}>🌙</Text>
+                                <Text>Ramzan</Text>
+                            </View>
+                        </View>
+                    </View> */}
+
                 </View>
             </ScrollView>
         </View>
@@ -472,6 +437,12 @@ const styles = StyleSheet.create({
     greeting: {
         color: '#fff',
         fontSize: 16,
+    },
+
+    loader: {
+        flex: 1,
+        justifyContent: 'center',
+        backgroundColor: '#ffffff',
     },
 
     bodyWrapper: {
@@ -658,13 +629,9 @@ const styles = StyleSheet.create({
 
     liveCard: {
         backgroundColor: '#199b4d',
-        marginHorizontal: 20,
-        marginTop: 20,
-        padding: 18,
+        margin: 20,
+        padding: 20,
         borderRadius: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
     },
 
     liveTitle: {
@@ -676,15 +643,6 @@ const styles = StyleSheet.create({
     liveSub: {
         color: '#e0f2e9',
         marginTop: 5,
-    },
-
-    liveSpeakerButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 
     quickRow: {

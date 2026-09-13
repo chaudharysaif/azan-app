@@ -1,21 +1,18 @@
-import { useNavigation } from '@react-navigation/native';
 import react, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Button } from 'react-native';
+import BackButton from '../../components/back-button';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function Announcement() {
 
-    const navigation = useNavigation<any>();
     const [text, setText] = useState('');
     const [description, setDescription] = useState('');
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack?.()}>
-                    <Text style={styles.backArrow}>←</Text>
-                </TouchableOpacity>
+                <BackButton />
 
                 <View style={styles.headerTextGroup}>
                     <Text style={styles.headerTitle}>Announcement</Text>
@@ -73,26 +70,12 @@ const styles = StyleSheet.create({
 
     // Header
     header: {
-        backgroundColor: '#1C8846',
+        backgroundColor: '#199b4d',
         width: '100%',
         minHeight: SCREEN_HEIGHT * 0.10,
         alignItems: 'center',
         padding: 10,
         flexDirection: 'row',
-    },
-    heroText: {
-        color: '#fff',
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginTop: 10,
-    },
-    backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 
     headerTextGroup: {
@@ -103,13 +86,6 @@ const styles = StyleSheet.create({
 
     headerRightSpace: {
         width: 36,
-    },
-
-    backArrow: {
-        color: '#fff',
-        fontSize: 28,
-        lineHeight: 22,
-        paddingBottom: 12
     },
 
     headerTitle: {
@@ -145,7 +121,7 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 22,
         fontWeight: '700',
-        color: '#1C8846',
+        color: '#199b4d',
     },
 
     cardSubtitle: {
@@ -163,7 +139,7 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#1C8846',
+        color: '#199b4d',
         marginBottom: 8,
     },
 
@@ -193,7 +169,7 @@ const styles = StyleSheet.create({
 
     submitButton: {
         marginTop: 10,
-        backgroundColor: '#1C8846',
+        backgroundColor: '#199b4d',
         height: 54,
         borderRadius: 14,
         justifyContent: 'center',

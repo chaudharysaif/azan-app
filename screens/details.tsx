@@ -2,29 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import API from './api/endpoints';
+import { Masjid, PrayerTime } from '../models/masjid';
 
 export default function Details({ route }: any) {
 
-    type Masjid = {
-        id: number;
-        name: string;
-        city: string;
-        map_location: string;
-        status: string;
-        image: string | null;
-        address_line_one: string;
-        address_line_two: string;
-        masjid_prayer_times: PrayerTime[];
-    };
+    // type Masjid = {
+    //     id: number;
+    //     name: string;
+    //     city: string;
+    //     map_location: string;
+    //     status: string;
+    //     image: string | null;
+    //     address_line_one: string;
+    //     address_line_two: string;
+    //     masjid_prayer_times: PrayerTime[];
+    // };
 
-    type PrayerTime = {
-        id: number;
-        prayer_name: string;
-        adhan_time: string;
-        prayer_time: string;
-        is_live: string;
-        status: string;
-    };
+    // type PrayerTime = {
+    //     id: number;
+    //     prayer_name: string;
+    //     adhan_time: string;
+    //     prayer_time: string;
+    //     is_live: string;
+    //     status: string;
+    // };
 
     const formatTime = (time: string) => {
         const [hours, minutes] = time.split(':');
@@ -134,84 +135,57 @@ export default function Details({ route }: any) {
                 contentContainerStyle={{ paddingBottom: 40 }}
                 renderItem={({ item }) => {
 
-                    const activePrayer =
-                        item.id ===
-                        getCurrentPrayer(
-                            masjid?.masjid_prayer_times || []
-                        );
+                    const activePrayer = item.id === getCurrentPrayer(
+                        masjid?.masjid_prayer_times || []
+                    );
 
                     return (
                         <View
-                            style={[
-                                styles.prayerCard,
-                                activePrayer && styles.activePrayerCard,
+                            style={[styles.prayerCard,
+                            activePrayer && styles.activePrayerCard,
                             ]}
                         >
                             <View style={styles.leftSection}>
-                                <View
-                                    style={[
-                                        styles.dot,
-                                        activePrayer && {
-                                            backgroundColor: '#fff',
-                                        },
-                                    ]}
-                                />
+                                <View style={[styles.dot,
+                                activePrayer && {
+                                    backgroundColor: '#fff',
+                                },
+                                ]} />
 
-                                <Text
-                                    style={[
-                                        styles.prayerName,
-                                        activePrayer && {
-                                            color: '#fff',
-                                        },
-                                    ]}
-                                >
-                                    {item.prayer_name
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        item.prayer_name.slice(1)}
+                                <Text style={[styles.prayerName,
+                                activePrayer && { color: '#fff' },
+                                ]}>
+                                    {item.prayer_name.charAt(0).toUpperCase() + item.prayer_name.slice(1)}
                                 </Text>
                             </View>
 
                             <View style={styles.timeSection}>
-                                <Text
-                                    style={[
-                                        styles.azanText,
-                                        activePrayer && {
-                                            color: '#fff',
-                                        },
-                                    ]}
-                                >
+                                <Text style={[styles.azanText, activePrayer && {
+                                    color: '#fff',
+                                },
+                                ]}>
                                     Azan — {formatTime(item.adhan_time)}
                                 </Text>
 
-                                <Text
-                                    style={[
-                                        styles.prayerTime,
-                                        activePrayer && {
-                                            color: '#fff',
-                                        },
-                                    ]}
+                                <Text style={[styles.prayerTime,
+                                activePrayer && {
+                                    color: '#fff',
+                                },
+                                ]}
                                 >
                                     {formatTime(item.prayer_time)}
                                 </Text>
                             </View>
 
-                            <TouchableOpacity
-                                onPress={() =>
-                                    toggleMute(item.id)
-                                }
-                            >
+                            <TouchableOpacity onPress={() => toggleMute(item.id)}>
                                 <Text style={{ fontSize: 22 }}>
-                                    {mutedPrayers.includes(item.id)
-                                        ? '🔇'
-                                        : '🔊'}
+                                    {mutedPrayers.includes(item.id) ? '🔇' : '🔊'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
                     );
                 }}
             />
-
         </View>
     );
 }
@@ -273,7 +247,7 @@ const styles = StyleSheet.create({
     },
 
     followBtn: {
-        backgroundColor: '#1E8E4A',
+        backgroundColor: '#199b4d',
     },
 
     followText: {
@@ -282,7 +256,7 @@ const styles = StyleSheet.create({
     },
 
     actionText: {
-        color: '#1E8E4A',
+        color: '#199b4d',
         fontWeight: '600',
     },
 
@@ -306,7 +280,7 @@ const styles = StyleSheet.create({
     },
 
     activePrayerCard: {
-        backgroundColor: '#1E8E4A',
+        backgroundColor: '#199b4d',
     },
 
     leftSection: {

@@ -105,12 +105,12 @@ const styles = StyleSheet.create({
     heading: {
         fontSize: 30,
         fontWeight: "bold",
-        color: "#1c8846",
+        color: "#199b4d",
     },
 
     text: {
         fontSize: 16,
-        color: "#1c8846",
+        color: "#199b4d",
         marginTop: 5,
     },
 
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
 
     label: {
         fontSize: 18,
-        color: "#1c8846",
+        color: "#199b4d",
         marginBottom: 10,
         textAlign: "center",
     },
@@ -145,16 +145,16 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderWidth: 1,
-        borderColor: "#1c8846",
+        borderColor: "#199b4d",
         borderRadius: 10,
         textAlign: "center",
         fontSize: 24,
         fontWeight: "bold",
-        color: "#1c8846",
+        color: "#199b4d",
     },
 
     otpButton: {
-        backgroundColor: "#1c8846",
+        backgroundColor: "#199b4d",
         padding: 14,
         borderRadius: 10,
         alignItems: "center",

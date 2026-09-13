@@ -1,20 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, useColorScheme, Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from 'react-native-safe-area-context';
-
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import {
-  House,
-  Compass,
-  Search as SearchIcon,
-  CircleDot,
-} from 'lucide-react-native';
-
+import {StatusBar, useColorScheme, Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
+import {NavigationContainer, useNavigation } from '@react-navigation/native';
+import {createNativeStackNavigator } from '@react-navigation/native-stack';
+import {createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {House, Compass, Search as SearchIcon, CircleDot} from 'lucide-react-native';
 import Azan from './screens/azan';
 import Login from './screens/vendor/login';
 import VerifyOtp from './screens/verifyotp';
@@ -37,11 +27,9 @@ function MainTabs({ initialTab }: any) {
 
   return (
     <>
-      <Tab.Navigator
-        initialRouteName={initialTab}
-        screenOptions={({ route }) => ({
+      <Tab.Navigator initialRouteName={initialTab} screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarActiveTintColor: '#1c8846',
+          tabBarActiveTintColor: '#199b4d',
           tabBarInactiveTintColor: 'gray',
 
           tabBarIcon: ({ color, size }) => {
@@ -64,16 +52,10 @@ function MainTabs({ initialTab }: any) {
           },
         })}
       >
-        <Tab.Screen
-          name="Home"
-          component={Home}
-          listeners={({ navigation }) => ({
+        <Tab.Screen name="Home" component={Home} listeners={({ navigation }) => ({
             tabPress: async (e) => {
               e.preventDefault();
-              const id = await AsyncStorage.getItem(
-                'selectedMasjidId'
-              );
-
+              const id = await AsyncStorage.getItem('selectedMasjidId');
               if (!id) {
                 setShowModal(true);
                 navigation.navigate("Search");
@@ -88,27 +70,16 @@ function MainTabs({ initialTab }: any) {
         <Tab.Screen name="Tasbeeh" component={Tasbeeh} />
       </Tab.Navigator>
 
-      <Modal
-        transparent
-        visible={showModal}
-        animationType="fade"
-        onRequestClose={() => setShowModal(false)}
-      >
+      <Modal transparent visible={showModal} animationType="fade" onRequestClose={() => setShowModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <Text style={styles.title}>Select Masjid First</Text>
-
             <Text style={styles.message}>
               Please search and select your Masjid first to access the Home page.
             </Text>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => setShowModal(false)}
-            >
+            <TouchableOpacity style={styles.button} onPress={() => setShowModal(false)}>
               <Text style={styles.buttonText}>OK</Text>
             </TouchableOpacity>
-
           </View>
         </View>
       </Modal>
@@ -141,21 +112,13 @@ function App() {
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top', 'right', 'left']}>
         <NavigationContainer>
-          <StatusBar
-            translucent={true}
-            backgroundColor="transparent"
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          />
-
+          <StatusBar translucent={true} backgroundColor="transparent" barStyle={isDarkMode ? 'light-content' : 'dark-content'}/>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Azan" component={Azan} />
             <Stack.Screen name="Details" component={Details} />
             <Stack.Screen name="MainTabs">
               {props => (
-                <MainTabs
-                  {...props}
-                  initialTab={initialTab}
-                />
+                <MainTabs {...props} initialTab={initialTab}/>
               )}
             </Stack.Screen>
             <Stack.Screen name="Login" component={Login} />
@@ -192,7 +155,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1c8846',
+    color: '#199b4d',
     marginBottom: 12,
   },
 
@@ -205,7 +168,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: '#1c8846',
+    backgroundColor: '#199b4d',
     width: '100%',
     paddingVertical: 14,
     borderRadius: 12,

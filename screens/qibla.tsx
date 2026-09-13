@@ -16,20 +16,20 @@ import Geolocation from "react-native-geolocation-service";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
-const GREEN       = "#1C8846";
-const GREEN_DARK  = "#166438";
+const GREEN = "#199b4d";
+const GREEN_DARK = "#166438";
 const GREEN_LIGHT = "#E8F5EE";
-const WHITE       = "#FFFFFF";
-const TEXT_DARK   = "#0F4023";
-const TEXT_MUTED  = "#5A9A72";
+const WHITE = "#FFFFFF";
+const TEXT_DARK = "#0F4023";
+const TEXT_MUTED = "#5A9A72";
 
-const COMPASS_SIZE       = 334;                           // bigger compass
-const COMPASS_R          = COMPASS_SIZE / 2;
-const CENTER_SIZE        = 100;
-const RING_INSET         = 17;          // gap between outer border and tick ring
-const NEEDLE_REACH       = COMPASS_R - RING_INSET - 20;   // tip distance from centre
-const NEEDLE_TAIL        = COMPASS_R - RING_INSET - 28;   // tail distance from centre
-const CARDINAL_INSET     = 38;
+const COMPASS_SIZE = 334;                           // bigger compass
+const COMPASS_R = COMPASS_SIZE / 2;
+const CENTER_SIZE = 100;
+const RING_INSET = 17;          // gap between outer border and tick ring
+const NEEDLE_REACH = COMPASS_R - RING_INSET - 20;   // tip distance from centre
+const NEEDLE_TAIL = COMPASS_R - RING_INSET - 28;   // tail distance from centre
+const CARDINAL_INSET = 38;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -78,17 +78,17 @@ export default function Qibla() {
     const navigation = useNavigation();
 
     // qiblaDir = fixed geographic bearing (e.g. 292° from Mumbai). NEVER changes.
-    const [qiblaDir,     setQiblaDir]     = useState<number | null>(null);
-    const [distance,     setDistance]     = useState<number | null>(null);
-    const [heading,      setHeading]      = useState(0);
-    const [locationErr,  setLocationErr]  = useState<string | null>(null);
-    const [isFacing,     setIsFacing]     = useState(false);
-    const smoothedRef  = useRef(0);
-    const roseAcc      = useRef(new AngleAcc());
-    const needleAcc    = useRef(new AngleAcc());
-    const roseAnim     = useRef(new Animated.Value(0)).current;
-    const needleAnim   = useRef(new Animated.Value(0)).current;
-    const pulseAnim    = useRef(new Animated.Value(1)).current;
+    const [qiblaDir, setQiblaDir] = useState<number | null>(null);
+    const [distance, setDistance] = useState<number | null>(null);
+    const [heading, setHeading] = useState(0);
+    const [locationErr, setLocationErr] = useState<string | null>(null);
+    const [isFacing, setIsFacing] = useState(false);
+    const smoothedRef = useRef(0);
+    const roseAcc = useRef(new AngleAcc());
+    const needleAcc = useRef(new AngleAcc());
+    const roseAnim = useRef(new Animated.Value(0)).current;
+    const needleAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     // ── pulse when facing ─────────────────────────────────────────────────────
     useEffect(() => {
@@ -167,7 +167,7 @@ export default function Qibla() {
         if (qiblaDir === null) return;
         // needle target = qiblaDir relative to the device's current heading
         const target = qiblaDir - heading;
-        const next   = needleAcc.current.feed(target);
+        const next = needleAcc.current.feed(target);
         Animated.timing(needleAnim, { toValue: next, duration: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
 
         // Update facing status
@@ -176,7 +176,7 @@ export default function Qibla() {
     }, [heading, qiblaDir]);
 
     // ── interpolations ────────────────────────────────────────────────────────
-    const roseSpin   = roseAnim.interpolate({ inputRange: [-7200, 7200], outputRange: ["-7200deg", "7200deg"], extrapolate: "extend" });
+    const roseSpin = roseAnim.interpolate({ inputRange: [-7200, 7200], outputRange: ["-7200deg", "7200deg"], extrapolate: "extend" });
     const needleSpin = needleAnim.interpolate({ inputRange: [-7200, 7200], outputRange: ["-7200deg", "7200deg"], extrapolate: "extend" });
     // ── tick ring ─────────────────────────────────────────────────────────────
     // 72 ticks every 5°; every 30° is a long tick (cardinal/intercardinal)
@@ -185,8 +185,6 @@ export default function Qibla() {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
-
-            {/* ── Header ─────────────────────────────────────────────────── */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <View style={styles.backCircle}>
@@ -293,8 +291,8 @@ export default function Qibla() {
                     {locationErr
                         ? `⚠️  ${locationErr}`
                         : isFacing
-                        ? "✅  Facing Qibla — You are aligned!"
-                        : "🔄  Rotate your phone to face the Qibla"}
+                            ? "✅  Facing Qibla — You are aligned!"
+                            : "🔄  Rotate your phone to face the Qibla"}
                 </Text>
             </View>
         </View>
@@ -389,8 +387,8 @@ const styles = StyleSheet.create({
 
     // ── ticks
     tick: { position: "absolute", backgroundColor: GREEN },
-    tickLong:  { width: 2,   height: 17 },
-    tickShort: { width: 1.5, height: 8  },
+    tickLong: { width: 2, height: 17 },
+    tickShort: { width: 1.5, height: 8 },
 
     // ── cardinal labels
     cardinal: {
@@ -401,7 +399,7 @@ const styles = StyleSheet.create({
     },
     // CARDINAL_INSET = 38 → labels sit ~30px inside the tick ring, no overlap
     cN: { top: CARDINAL_INSET - 6 },
-    cS: { bottom: CARDINAL_INSET - 6},
+    cS: { bottom: CARDINAL_INSET - 6 },
     cE: { right: CARDINAL_INSET - 3 },
     cW: { left: CARDINAL_INSET - 6 },
 

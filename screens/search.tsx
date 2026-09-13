@@ -15,6 +15,8 @@ import {
     ActivityIndicator,
 } from "react-native";
 import API from "./api/endpoints";
+import Loader from "../components/loader";
+import BackButton from "../components/back-button";
 
 type Masjid = {
     id: number;
@@ -122,27 +124,17 @@ export default function FindMasjidScreen({ navigation }: { navigation: any }) {
     }, [search]);
 
     if (loading) {
-        return (
-            <View style={styles.loader}>
-                <ActivityIndicator size="large" color="#1c8846" />
-            </View>
-        );
+        return <Loader size="large" color="#199b4d" />
     }
 
     return (
         <SafeAreaView style={styles.safe}>
-            <StatusBar barStyle="light-content" backgroundColor="#1c8846" />
+            <StatusBar barStyle="light-content" backgroundColor="#199b4d" />
 
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerRow}>
-                    <TouchableOpacity
-                        style={styles.backBtn}
-                        onPress={() => navigation?.goBack?.()}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.backArrow}>←</Text>
-                    </TouchableOpacity>
+                    <BackButton />
                     <Text style={styles.headerTitle}>Find Masjid</Text>
                     <View style={{ width: 36 }} />
                 </View>
@@ -175,7 +167,7 @@ export default function FindMasjidScreen({ navigation }: { navigation: any }) {
     );
 }
 
-const GREEN = "#1c8846";
+const GREEN = "#199b4d";
 const GREEN_LIGHT = "#D6F0E0";
 const GREEN_MID = "#B5E3C7";
 
@@ -198,7 +190,7 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "center",
         marginBottom: 16,
     },
 
@@ -209,26 +201,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#fff",
         letterSpacing: 0.3,
-    },
-
-    loader: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-
-    backBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: "rgba(255,255,255,0.2)",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
-    backArrow: {
-        fontSize: 18,
-        color: "#fff",
-        fontWeight: "600",
     },
 
     searchBar: {

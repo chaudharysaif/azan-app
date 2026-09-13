@@ -57,7 +57,7 @@ export default function Tasbeeh() {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#1c8846" />
+        <ActivityIndicator size="large" color="#199b4d" />
       </View>
     );
   }
@@ -69,8 +69,8 @@ export default function Tasbeeh() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#1c8846']}
-          tintColor="#1c8846"
+          colors={['#199b4d']}
+          tintColor="#199b4d"
         />
       }
     >
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: '#1c8846',
+    backgroundColor: '#199b4d',
     paddingTop: 25,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
 
   arabic: {
     fontSize: 30,
-    color: '#1c8846',
+    color: '#199b4d',
     marginBottom: 10,
   },
 
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
 
   badgeText: {
-    color: '#1c8846',
+    color: '#199b4d',
     fontWeight: '600',
   },
 
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   counter: {
     fontSize: 60,
     fontWeight: 'bold',
-    color: '#1c8846',
+    color: '#199b4d',
   },
 
   ofText: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#1c8846',
+    backgroundColor: '#199b4d',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
 
   changeBtnText: {
-    color: '#1c8846',
+    color: '#199b4d',
     fontWeight: '600',
   },
 
@@ -346,14 +346,14 @@ const styles = StyleSheet.create({
 
   activeCard: {
     borderWidth: 2,
-    borderColor: '#1c8846',
+    borderColor: '#199b4d',
   },
 
   numberCircle: {
     width: 35,
     height: 35,
     borderRadius: 18,
-    backgroundColor: '#1c8846',
+    backgroundColor: '#199b4d',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
 
   cardArabic: {
     fontSize: 18,
-    color: '#1c8846',
+    color: '#199b4d',
   },
 
   cardEnglish: {
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
 
   cardCount: {
-    color: '#1c8846',
+    color: '#199b4d',
     fontWeight: '700',
   },
 });
