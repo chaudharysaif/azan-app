@@ -109,7 +109,7 @@ export default function Home({ route }: any) {
     const checkLiveStatus = useCallback(async () => {
         if (!masjidId) return;
         try {
-            const res = await fetch(`${API_BASE}/user/live/status/${masjidId}`, {
+            const res = await fetch(API.GET_LIVE_STATUS(masjidId), {
                 headers: {
                     'ngrok-skip-browser-warning': 'true',
                     'Accept': 'application/json'
@@ -143,7 +143,8 @@ export default function Home({ route }: any) {
         if (!masjidId) return;
         setConnecting(true);
         try {
-            const res = await fetch(`${API_BASE}/user/live/token/${masjidId}`, {
+            // const res = await fetch(`${API_BASE}/user/live/token/${masjidId}`, {
+            const res = await fetch(API.GET_LIVE_TOKEN(masjidId), {
                 headers: {
                     'ngrok-skip-browser-warning': 'true',
                     'Accept': 'application/json'

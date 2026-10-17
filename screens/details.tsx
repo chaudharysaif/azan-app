@@ -6,27 +6,6 @@ import { Masjid, PrayerTime } from '../models/masjid';
 
 export default function Details({ route }: any) {
 
-    // type Masjid = {
-    //     id: number;
-    //     name: string;
-    //     city: string;
-    //     map_location: string;
-    //     status: string;
-    //     image: string | null;
-    //     address_line_one: string;
-    //     address_line_two: string;
-    //     masjid_prayer_times: PrayerTime[];
-    // };
-
-    // type PrayerTime = {
-    //     id: number;
-    //     prayer_name: string;
-    //     adhan_time: string;
-    //     prayer_time: string;
-    //     is_live: string;
-    //     status: string;
-    // };
-
     const formatTime = (time: string) => {
         const [hours, minutes] = time.split(':');
 
@@ -95,9 +74,7 @@ export default function Details({ route }: any) {
                 style={styles.hero}
                 imageStyle={{ borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}
             >
-
                 <View style={styles.overlay} />
-
                 <View style={styles.heroContent}>
 
                     <Text style={styles.masjidName}>

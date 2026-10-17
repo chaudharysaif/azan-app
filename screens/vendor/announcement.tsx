@@ -1,6 +1,9 @@
 import react, { useState } from 'react';
-import { Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Button } from 'react-native';
+import { Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Button, Alert } from 'react-native';
 import BackButton from '../../components/back-button';
+import API from '../api/endpoints';
+import ErrorMessage from '../../components/error-message';
+import ApiErrorAlert from '../../components/api-error-alert';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -8,6 +11,67 @@ export default function Announcement() {
 
     const [text, setText] = useState('');
     const [description, setDescription] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [uniqueIdError, setUniqueIdError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [apiError, setApiError] = useState('');
+    const [showApiError, setShowApiError] = useState(false);
+
+    const sendAnnouncement = async () => {
+        if (!text.trim()) {
+            Alert.alert('Required', 'Please enter announcement title.');
+            return;
+        }
+
+        if (!description.trim()) {
+            Alert.alert('Required', 'Please enter announcement description.');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const response = await fetch(API.MASJID_ANNOUNCEMENTS, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: text.trim(),
+                    description: description.trim(),
+                }),
+            });
+
+            const data = await response.json();
+
+            console.log('Announcement response:', data);
+
+            if (data.status === 'success') {
+                Alert.alert(
+                    'Success',
+                    'Announcement published successfully.'
+                );
+
+                setText('');
+                setDescription('');
+            } else {
+                Alert.alert(
+                    'Error',
+                    data.message || 'Failed to publish announcement.'
+                );
+            }
+        } catch (error) {
+            console.error('Announcement error:', error);
+
+            Alert.alert(
+                'Error',
+                'Something went wrong. Please check your internet connection.'
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -52,7 +116,7 @@ export default function Announcement() {
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.submitButton}>
+                    <TouchableOpacity style={styles.submitButton} onPress={sendAnnouncement}>
                         <Text style={styles.submitButtonText}>
                             📤 Publish Announcement
                         </Text>

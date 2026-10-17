@@ -6,6 +6,7 @@ import DeviceInfo from 'react-native-device-info';
 import API from './api/endpoints';
 import ErrorMessage from '../components/error-message';
 import ApiErrorAlert from '../components/api-error-alert';
+import { getDeviceId } from '../components/deviceid';
 
 export default function Azan() {
     const navigation = useNavigation<any>();
@@ -17,14 +18,15 @@ export default function Azan() {
     const handleUserPress = async () => {
         setLoadingUser(true);
         try {
-            const deviceId = await DeviceInfo.getUniqueId();
+            const deviceId = await getDeviceId();
+            const deviceName = await DeviceInfo.getUniqueId();
             const response = await fetch(API.LOGIN, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ device_id: deviceId }),
+                body: JSON.stringify({ device_id: deviceId, device_name: deviceName }),
             });
             const data = await response.json();
             console.log('login response:', data);
@@ -64,27 +66,17 @@ export default function Azan() {
 
             {/* Bottom Buttons */}
             <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.button}
-                    onPress={handleUserPress}
-                    disabled={loadingUser || loadingMasjid}
-                >
+                <TouchableOpacity activeOpacity={0.85} style={styles.button} onPress={handleUserPress} disabled={loadingUser || loadingMasjid}>
                     {loadingUser ? (
-                        <ActivityIndicator size="small" color="#199b4d" />
+                        <ActivityIndicator size="small" color="#fff" />
                     ) : (
                         <Text style={styles.buttonText}>User</Text>
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.button}
-                    onPress={handleMasjidPress}
-                    disabled={loadingUser || loadingMasjid}
-                >
+                <TouchableOpacity activeOpacity={0.85} style={styles.button} onPress={handleMasjidPress} disabled={loadingUser || loadingMasjid}>
                     {loadingMasjid ? (
-                        <ActivityIndicator size="small" color="#199b4d" />
+                        <ActivityIndicator size="small" color="#fff" />
                     ) : (
                         <Text style={styles.buttonText}>Masjid</Text>
                     )}
@@ -98,29 +90,25 @@ export default function Azan() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#199b4d',
+        backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: wp(6),
     },
 
     logo: {
-        width: wp(40),
-        height: wp(40),
-        marginBottom: hp(2.5),
+        width: wp(55),
+        height: wp(55),
     },
 
     title: {
         fontSize: wp(7.5),
         fontWeight: 'bold',
-        color: '#fff',
-        marginTop: hp(1.2),
+        color: '#199b4d',
     },
 
     subtitle: {
         fontSize: wp(3.8),
-        color: '#fff',
-        marginTop: hp(1),
+        color: '#199b4d',
         opacity: 0.9,
     },
 
@@ -135,7 +123,7 @@ const styles = StyleSheet.create({
 
     button: {
         width: wp(38),
-        backgroundColor: '#ffffff',
+        backgroundColor: '#199b4d',
         paddingVertical: hp(1.8),
         borderRadius: wp(8),
         alignItems: 'center',
@@ -144,8 +132,8 @@ const styles = StyleSheet.create({
     },
 
     buttonText: {
-        fontSize: wp(4.2),
+        fontSize: wp(4.5),
         fontWeight: '700',
-        color: '#199b4d',
+        color: '#fff',
     },
 });

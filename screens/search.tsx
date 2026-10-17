@@ -1,22 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    FlatList,
-    StyleSheet,
-    StatusBar,
-    SafeAreaView,
-    Image,
-    ActivityIndicator,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, FlatList, StyleSheet, StatusBar, SafeAreaView, Image, ActivityIndicator} from "react-native";
 import API from "./api/endpoints";
 import Loader from "../components/loader";
 import BackButton from "../components/back-button";
+import { Search } from "lucide-react-native";
 
 type Masjid = {
     id: number;
@@ -141,7 +130,7 @@ export default function FindMasjidScreen({ navigation }: { navigation: any }) {
 
                 {/* Search Bar */}
                 <View style={styles.searchBar}>
-                    <Text style={styles.searchIcon}>🔍</Text>
+                    <Text style={styles.searchIcon}><Search color="#199b4d"/></Text>
                     <TextInput
                         value={search}
                         onChangeText={setSearch}

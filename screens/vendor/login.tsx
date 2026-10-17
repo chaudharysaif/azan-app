@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import {Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import API from '../api/endpoints';
 import ErrorMessage from '../../components/error-message';
 import ApiErrorAlert from '../../components/api-error-alert';
+import { getDeviceId } from '../../components/deviceid';
+import DeviceInfo from 'react-native-device-info';
 
 // ─── Responsive helpers ───────────────────────────────────────────────────────
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -24,25 +26,33 @@ export default function MasjidLogin() {
     const [showApiError, setShowApiError] = useState(false);
 
     const handleLogin = async () => {
+        const deviceId = await DeviceInfo.getUniqueId();
+        // const deviceId = await getDeviceId();
+
         setUniqueIdError('');
         setPasswordError('');
 
         let hasError = false;
-        if (!uniqueId.trim()) { setUniqueIdError('Unique ID is required'); hasError = true; }
-        if (!password.trim()) { setPasswordError('Password is required'); hasError = true; }
+        if (!uniqueId.trim()) {
+            setUniqueIdError('Unique ID is required');
+            hasError = true;
+        }
+        if (!password.trim()) {
+            setPasswordError('Password is required');
+            hasError = true;
+        }
         if (hasError) return;
 
         try {
-            const response = await fetch(API.MASJID_LOGIN,
-                {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': 'true',
-                    },
-                    body: JSON.stringify({ unique_id: uniqueId, password }),
-                }
+            const response = await fetch(API.MASJID_LOGIN, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+                body: JSON.stringify({ unique_id: uniqueId, password, device_id: deviceId }),
+            }
             );
             const data = await response.json();
             if (response.ok && data.status === 'success') {
@@ -131,10 +141,10 @@ const S = StyleSheet.create({
     passwordLabel: { marginTop: hp(2.2) },
 
     // Input
-    input: { height: hp(6.5), borderWidth: 1, borderColor: '#D8D8D8', borderRadius: wp(3), paddingHorizontal: wp(4), fontSize: wp(4), backgroundColor: '#FAFAFA', color: '#222' },
+    input: { height: hp(6), borderWidth: 1, borderColor: '#D8D8D8', borderRadius: wp(3), paddingHorizontal: wp(4), fontSize: wp(4), backgroundColor: '#FAFAFA', color: '#222' },
     inputError: { borderColor: '#D32F2F' },
 
     // Button
-    loginButton: { marginTop: hp(3.5), backgroundColor: GREEN, height: hp(7), borderRadius: wp(3.5), justifyContent: 'center', alignItems: 'center' },
+    loginButton: { marginTop: hp(3.5), backgroundColor: GREEN, height: hp(5), borderRadius: wp(3.5), justifyContent: 'center', alignItems: 'center' },
     loginButtonText: { color: '#fff', fontSize: wp(4.5), fontWeight: '700' },
 });

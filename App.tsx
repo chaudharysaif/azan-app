@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import {StatusBar, useColorScheme, Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
-import {NavigationContainer, useNavigation } from '@react-navigation/native';
-import {createNativeStackNavigator } from '@react-navigation/native-stack';
-import {createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import {House, Compass, Search as SearchIcon, CircleDot} from 'lucide-react-native';
+import { StatusBar, useColorScheme, Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { House, Compass, Search as SearchIcon, CircleDot } from 'lucide-react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { getDeviceId } from './components/deviceid';
 import Azan from './screens/azan';
 import Login from './screens/vendor/login';
 import VerifyOtp from './screens/verifyotp';
@@ -17,6 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dashboard from './screens/vendor/dashboard';
 import UpdateNamazTime from './screens/vendor/updateNamazTime';
 import Announcement from './screens/vendor/announcement';
+import notifee, { AndroidImportance } from '@notifee/react-native';
+import { getMessaging, onMessage } from '@react-native-firebase/messaging';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -28,42 +32,42 @@ function MainTabs({ initialTab }: any) {
   return (
     <>
       <Tab.Navigator initialRouteName={initialTab} screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarActiveTintColor: '#199b4d',
-          tabBarInactiveTintColor: 'gray',
+        headerShown: false,
+        tabBarActiveTintColor: '#199b4d',
+        tabBarInactiveTintColor: 'gray',
 
-          tabBarIcon: ({ color, size }) => {
-            switch (route.name) {
-              case 'Home':
-                return <House color={color} size={size} />;
+        tabBarIcon: ({ color, size }) => {
+          switch (route.name) {
+            case 'Home':
+              return <House color={color} size={size} />;
 
-              case 'Search':
-                return <SearchIcon color={color} size={size} />;
+            case 'Search':
+              return <SearchIcon color={color} size={size} />;
 
-              case 'Qibla':
-                return <Compass color={color} size={size} />;
+            case 'Qibla':
+              return <Compass color={color} size={size} />;
 
-              case 'Tasbeeh':
-                return <CircleDot color={color} size={size} />;
+            case 'Tasbeeh':
+              return <CircleDot color={color} size={size} />;
 
-              default:
-                return null;
+            default:
+              return null;
+          }
+        },
+      })}
+      >
+        <Tab.Screen name="Home" component={Home} listeners={({ navigation }) => ({
+          tabPress: async (e) => {
+            e.preventDefault();
+            const id = await AsyncStorage.getItem('selectedMasjidId');
+            if (!id) {
+              setShowModal(true);
+              navigation.navigate("Search");
+            } else {
+              navigation.navigate("Home");
             }
           },
         })}
-      >
-        <Tab.Screen name="Home" component={Home} listeners={({ navigation }) => ({
-            tabPress: async (e) => {
-              e.preventDefault();
-              const id = await AsyncStorage.getItem('selectedMasjidId');
-              if (!id) {
-                setShowModal(true);
-                navigation.navigate("Search");
-              } else {
-                navigation.navigate("Home");
-              }
-            },
-          })}
         />
         <Tab.Screen name="Search" component={Search} />
         <Tab.Screen name="Qibla" component={Qibla} />
@@ -92,33 +96,21 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [initialTab, setInitialTab] = useState("Search");
 
-  useEffect(() => {
-    const checkMasjid = async () => {
-      // await AsyncStorage.removeItem('selectedMasjidId');
-      const id = await AsyncStorage.getItem('selectedMasjidId');
-      console.log("Selected Masjid ID:", id);
-      setInitialTab(id ? "Home" : "Search");
-      setLoading(false);
-    };
-
-    checkMasjid();
-  }, []);
-
-  if (loading) {
-    return null;
-  }
+  // if (loading) {
+  //   return null;
+  // }
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top', 'right', 'left']}>
         <NavigationContainer>
-          <StatusBar translucent={true} backgroundColor="transparent" barStyle={isDarkMode ? 'light-content' : 'dark-content'}/>
+          <StatusBar translucent={true} backgroundColor="transparent" barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Azan" component={Azan} />
             <Stack.Screen name="Details" component={Details} />
             <Stack.Screen name="MainTabs">
               {props => (
-                <MainTabs {...props} initialTab={initialTab}/>
+                <MainTabs {...props} initialTab={initialTab} />
               )}
             </Stack.Screen>
             <Stack.Screen name="Login" component={Login} />
@@ -128,7 +120,7 @@ function App() {
             <Stack.Screen name="Announcement" component={Announcement} />
           </Stack.Navigator>
         </NavigationContainer>
-      </SafeAreaView> 
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
