@@ -18,6 +18,7 @@ import {
     View,
 } from "react-native";
 import { Room, RoomEvent, createLocalAudioTrack, Track } from "livekit-client";
+import { API_BASE } from '../api/endpoints';
 
 // ─── Responsive helper ────────────────────────────────────────────────────────
 // wp(4) means "4% of the screen width" — works on every screen size automatically
@@ -26,7 +27,6 @@ const wp = (percent: number) => (SW * percent) / 100;
 const hp = (percent: number) => (SH * percent) / 100;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const API_BASE = 'https://slogan-mud-curing.ngrok-free.dev/api';
 const GREEN = '#199b4d';
 const GREEN_LIGHT = '#EAF4EC';
 
@@ -122,10 +122,8 @@ export default function Dashboard({ route }: any) {
             pulseLoop.current?.stop();
             pulseAnim.setValue(0);
         }
-    }, [liveStatus]);
-
-    // Stop stream when screen unmounts
-    useEffect(() => () => { stopStreaming(); }, []);
+        return () => pulseLoop.current?.stop();
+    }, [liveStatus, pulseAnim]);
 
     // Fetch masjid details
     const fetchData = useCallback(async (isRefresh = false) => {
@@ -139,7 +137,9 @@ export default function Dashboard({ route }: any) {
                 setMasjid(json.data);
                 setNextPrayer(getNextPrayer(json.data.masjid_prayer_times || []));
             }
-        } catch (e) { console.error('Fetch error:', e); }
+        } catch {
+            // keep the last successful data on a failed refresh
+        }
         finally { setLoading(false); setRefreshing(false); }
     }, [masjidId]);
 
@@ -195,7 +195,7 @@ export default function Dashboard({ route }: any) {
             setLiveStatus('streaming');
         } catch (e: any) {
             Alert.alert('Connection Error', e?.message || 'Could not start broadcast. Please try again.');
-            try { roomRef.current?.disconnect(); } catch (_) { }
+            try { roomRef.current?.disconnect(); } catch {}
             roomRef.current = null;
             setIsLive(false);
             setLiveStatus('error');
@@ -203,12 +203,12 @@ export default function Dashboard({ route }: any) {
     };
 
     // Stop live broadcast
-    const stopStreaming = async () => {
+    const stopStreaming = useCallback(async () => {
         try {
             const pub = roomRef.current?.localParticipant.getTrackPublication(Track.Source.Microphone);
             if (pub?.track) await roomRef.current?.localParticipant.unpublishTrack(pub.track);
-        } catch (_) { }
-        try { roomRef.current?.disconnect(); } catch (_) { }
+        } catch {}
+        try { roomRef.current?.disconnect(); } catch {}
         roomRef.current = null;
         try {
             await fetch(`${API_BASE}/masjid/live/stop`, {
@@ -216,10 +216,13 @@ export default function Dashboard({ route }: any) {
                 headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                 body: JSON.stringify({ masjid_id: masjidId }),
             });
-        } catch (_) { }
+        } catch {}
         setLiveStatus('idle');
         setListenerCount(0);
-    };
+    }, [masjidId]);
+
+    // Stop the broadcast when the screen unmounts
+    useEffect(() => () => { stopStreaming(); }, [stopStreaming]);
 
     const handleToggle = async (val: boolean) => {
         setIsLive(val);

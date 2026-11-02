@@ -1,21 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-    Animated,
-    Easing,
-    PermissionsAndroid,
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { Animated, Easing, PermissionsAndroid, Platform, StatusBar, StyleSheet, Text, View } from "react-native";
 import CompassHeading from "react-native-compass-heading";
 import Geolocation from "react-native-geolocation-service";
+import Header from "../components/header";
 
 // ─── constants ────────────────────────────────────────────────────────────────
-
 const GREEN = "#199b4d";
 const GREEN_DARK = "#166438";
 const GREEN_LIGHT = "#E8F5EE";
@@ -28,7 +17,6 @@ const COMPASS_R = COMPASS_SIZE / 2;
 const CENTER_SIZE = 100;
 const RING_INSET = 17;          // gap between outer border and tick ring
 const NEEDLE_REACH = COMPASS_R - RING_INSET - 20;   // tip distance from centre
-const NEEDLE_TAIL = COMPASS_R - RING_INSET - 28;   // tail distance from centre
 const CARDINAL_INSET = 38;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -75,8 +63,6 @@ class AngleAcc {
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function Qibla() {
-    const navigation = useNavigation();
-
     // qiblaDir = fixed geographic bearing (e.g. 292° from Mumbai). NEVER changes.
     const [qiblaDir, setQiblaDir] = useState<number | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
@@ -103,7 +89,7 @@ export default function Qibla() {
             pulseAnim.stopAnimation();
             pulseAnim.setValue(1);
         }
-    }, [isFacing]);
+    }, [isFacing, pulseAnim]);
 
     // ── location permission ───────────────────────────────────────────────────
     const requestPerm = async () => {
@@ -138,7 +124,7 @@ export default function Qibla() {
                     setDistance(calcDistance(latitude, longitude));
                     setLocationErr(null);
                 },
-                (e) => { console.warn("Geo error", e); alive && setLocationErr("Unable to get location"); },
+                () => { if (alive) { setLocationErr("Unable to get location"); } },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
             );
         })();
@@ -160,7 +146,7 @@ export default function Qibla() {
     useEffect(() => {
         const next = roseAcc.current.feed(-heading);
         Animated.timing(roseAnim, { toValue: next, duration: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    }, [heading]);
+    }, [heading, roseAnim]);
 
     // ── needle animation (points at Qibla regardless of heading) ─────────────
     useEffect(() => {
@@ -173,7 +159,7 @@ export default function Qibla() {
         // Update facing status
         const diff = Math.min(Math.abs(qiblaDir - heading), 360 - Math.abs(qiblaDir - heading));
         setIsFacing(diff <= 5);
-    }, [heading, qiblaDir]);
+    }, [heading, qiblaDir, needleAnim]);
 
     // ── interpolations ────────────────────────────────────────────────────────
     const roseSpin = roseAnim.interpolate({ inputRange: [-7200, 7200], outputRange: ["-7200deg", "7200deg"], extrapolate: "extend" });
@@ -186,12 +172,7 @@ export default function Qibla() {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <View style={styles.backCircle}>
-                        <Text style={styles.backArrow}>‹</Text>
-                    </View>
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Qibla Direction</Text>
+                <Header title="Qibla Compass" />
             </View>
 
             {/* ── Calibration banner ─────────────────────────────────────── */}
@@ -302,37 +283,17 @@ export default function Qibla() {
 // ─── styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-
     container: {
         flex: 1,
         backgroundColor: WHITE,
-        paddingTop: (StatusBar.currentHeight ?? 0) + 8,
     },
 
-    // ── header
     header: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 20,
-        height: 56,
-        borderBottomWidth: 1,
-        borderBottomColor: GREEN_LIGHT,
-    },
-    backBtn: { marginRight: 12 },
-    backCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: GREEN_LIGHT,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    backArrow: { fontSize: 26, color: GREEN, lineHeight: 30, marginTop: -2 },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: TEXT_DARK,
-        letterSpacing: 0.4,
+        backgroundColor: GREEN,
+        padding: 20,
+        paddingLeft: 20,
+        borderBottomLeftRadius: 25,
+        borderBottomRightRadius: 25,
     },
 
     // ── calibration banner

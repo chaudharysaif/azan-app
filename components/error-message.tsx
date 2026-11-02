@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 type ErrorMessageProps = {
-    message?: string;
+    message?: string | null;
 };
 
 const ErrorMessage = ({ message }: ErrorMessageProps) => {

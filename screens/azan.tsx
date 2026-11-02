@@ -4,9 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { wp, hp } from '../components/responsive';
 import DeviceInfo from 'react-native-device-info';
 import API from './api/endpoints';
-import ErrorMessage from '../components/error-message';
 import ApiErrorAlert from '../components/api-error-alert';
 import { getDeviceId } from '../components/deviceid';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Azan() {
     const navigation = useNavigation<any>();
@@ -29,9 +29,11 @@ export default function Azan() {
                 body: JSON.stringify({ device_id: deviceId, device_name: deviceName }),
             });
             const data = await response.json();
-            console.log('login response:', data);
-            if (response && data.success === true) {
-                navigation.navigate('MainTabs');
+            if (response.ok && data.success === true) {
+                const masjidId = await AsyncStorage.getItem('selectedMasjidId');
+                navigation.navigate('MainTabs', {
+                    initialTab: masjidId ? 'Home' : 'Search',
+                });
                 return;
             }
             setApiError(data.message);
@@ -44,12 +46,58 @@ export default function Azan() {
         }
     };
 
-    const handleMasjidPress = () => {
+    const handleMasjidPress = async () => {
+        console.log('Masjid button clicked');
+
         setLoadingMasjid(true);
-        setTimeout(() => {
+
+        try {
+            console.log('Checking AsyncStorage...');
+
+            const token = await AsyncStorage.getItem('token');
+            const masjidId = await AsyncStorage.getItem('masjidId');
+
+            console.log('Retrieved Token:', token);
+            console.log('Retrieved Masjid ID:', masjidId);
+
+            if (!token) {
+                console.log('Token not found');
+                navigation.navigate('Login');
+                return;
+            }
+
+            console.log('Token found, calling profile API...');
+
+            const response = await fetch(API.MASJID_PROFILE, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            console.log('API status:', response.status);
+
+            const data = await response.json();
+
+            console.log('Profile response:', data);
+
+            if (response.ok && data.status === 'success') {
+                navigation.navigate('Dashboard', {
+                    masjidId: data.data.masjid.id,
+                });
+            } else {
+                await AsyncStorage.removeItem('token');
+                navigation.navigate('Login');
+            }
+
+        } catch (error) {
+            console.log('Masjid error:', error);
+            setApiError('Something went wrong. Please try again.');
+            setShowApiError(true);
+        } finally {
             setLoadingMasjid(false);
-            navigation.navigate('Login');
-        }, 800);
+        }
     };
 
     const closeApiError = () => { setShowApiError(false); setApiError(''); };

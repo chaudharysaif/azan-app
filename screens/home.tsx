@@ -1,23 +1,29 @@
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, ActivityIndicator, FlatList, ImageBackground, Alert } from 'react-native';
-import { AudioSession, registerGlobals } from '@livekit/react-native';
+import { AudioSession } from '@livekit/react-native';
 import { Room, RoomEvent } from 'livekit-client';
-import API from './api/endpoints';
+import API, { IMAGE_BASE_URL } from './api/endpoints';
+import { apiRequest, fetchMasjidDetails } from './api/api';
 import Loader from '../components/loader';
+import ApiErrorAlert from '../components/api-error-alert';
 import { Masjid, PrayerTime } from '../models/masjid';
-
-const API_BASE = 'https://slogan-mud-curing.ngrok-free.dev/api';
+import DeviceInfo from 'react-native-device-info';
+import Logout from '../components/logout';
+import { Volume2, VolumeX, MapPin } from 'lucide-react-native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 export default function Home({ route }: any) {
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const routeMasjidId = route?.params?.masjidId;
     const [masjidId, setMasjidId] = useState<number | null>(null);
     const [masjid, setMasjid] = useState<Masjid | null>(null);
     const [refreshing, setRefreshing] = useState(false);
-    const navigation = useNavigation<any>();
     const [mutedPrayers, setMutedPrayers] = useState<number[]>([]);
+    const [showApiError, setShowApiError] = useState(false);
+    const [togglingId, setTogglingId] = useState<number | null>(null);
 
     // ── Live Azan state ────────────────────────────────────────────────────────
     const [masjidIsLive, setMasjidIsLive] = useState(false);
@@ -26,56 +32,59 @@ export default function Home({ route }: any) {
     const roomRef = useRef<Room | null>(null);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const toggleMute = (id: number) => {
-        setMutedPrayers(prev =>
-            prev.includes(id)
-                ? prev.filter(item => item !== id)
-                : [...prev, id]
-        );
+    const toggleMute = async (id: number) => {
+        setTogglingId(id);
+        const isMuted = mutedPrayers.includes(id);
+        const isEnabled = isMuted ? 'yes' : 'no';
+        try {
+            const deviceName = await DeviceInfo.getUniqueId();
+            const response = await fetch(API.TOGGLE_AUDIO, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_enabled: isEnabled,
+                    prayer_id: id,
+                    device_name: deviceName,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                setMutedPrayers(prev => isEnabled === 'no' ? [...prev, id] : prev.filter(id => id !== id));
+            } else {
+                console.log('Toggle Audio Error:', data);
+            }
+        } catch (error) {
+            console.log('Error:', error);
+        } finally {
+            setTogglingId(null);
+        }
     };
 
-    // type PrayerTime = {
-    //     id: number;
-    //     prayer_name: string;
-    //     adhan_time: string;
-    //     prayer_time: string;
-    //     is_live: string;
-    //     status: string;
-    // };
-
-    // type MasjidDetails = {
-    //     id: number;
-    //     name: string;
-    //     city: string;
-    //     map_location: string;
-    //     status: string;
-    //     image: string | null;
-    //     address_line_one: string;
-    //     address_line_two: string;
-    //     masjid_prayer_times: PrayerTime[];
-    // };
-
-    const fetchMasjidDetails = async () => {
-        if (!masjidId) return;
+    const loadMasjid = useCallback(async () => {
+        if (!masjidId) {
+            setLoading(false);
+            return;
+        }
         try {
-            const response = await fetch(
-                API.GET_MASJID_DETAILS(masjidId),
-            );
-            const data = await response.json();
+            const deviceId = await DeviceInfo.getUniqueId();
+            const data = await fetchMasjidDetails(masjidId, deviceId);
             setMasjid(data.data);
-        } catch (error) {
-            console.log(error);
+        } catch {
+
         } finally {
             setLoading(false);
         }
-    };
+    }, [masjidId]);
 
     const onRefresh = async () => {
         try {
             setRefreshing(true);
-            await fetchMasjidDetails();
-        } catch (error) {
-            console.log(error);
+            await loadMasjid();
         } finally {
             setRefreshing(false);
         }
@@ -93,38 +102,30 @@ export default function Home({ route }: any) {
                 if (storedId) {
                     setMasjidId(Number(storedId));
                 }
-            } catch (error) {
-                console.log(error);
+            } catch {
+                // ignore storage failures; the Search tab is still reachable
             }
         };
         initializeMasjid();
     }, [routeMasjidId]);
 
     useEffect(() => {
-        if (masjidId) {
-            fetchMasjidDetails();
-        }
-    }, [masjidId]);
+        loadMasjid();
+    }, [loadMasjid]);
 
     const checkLiveStatus = useCallback(async () => {
         if (!masjidId) return;
         try {
-            const res = await fetch(API.GET_LIVE_STATUS(masjidId), {
-                headers: {
-                    'ngrok-skip-browser-warning': 'true',
-                    'Accept': 'application/json'
-                },
-            });
-            const json = await res.json();
-            if (json.status === 'success') {
+            const json = await apiRequest(API.GET_LIVE_STATUS(masjidId));
+            if (json?.status === 'success') {
                 setMasjidIsLive(!!json.data.is_live);
                 // If masjid stopped broadcasting while we were listening, disconnect.
                 if (!json.data.is_live && listening) {
                     await stopListening();
                 }
             }
-        } catch (e) {
-            console.log('live status check failed', e);
+        } catch {
+            // transient network failure — the next poll will retry
         }
     }, [masjidId, listening]);
 
@@ -143,22 +144,16 @@ export default function Home({ route }: any) {
         if (!masjidId) return;
         setConnecting(true);
         try {
-            // const res = await fetch(`${API_BASE}/user/live/token/${masjidId}`, {
-            const res = await fetch(API.GET_LIVE_TOKEN(masjidId), {
-                headers: {
-                    'ngrok-skip-browser-warning': 'true',
-                    'Accept': 'application/json'
-                },
-                // add your user auth header here, e.g. Authorization: `Bearer ${userToken}`
-            });
-            const json = await res.json();
-            if (json.status !== 'success') {
-                Alert.alert('Not live', json.message || 'This masjid is not broadcasting right now.');
+            const json = await apiRequest(API.GET_LIVE_TOKEN(masjidId));
+            if (json?.status !== 'success') {
+                // Alert.alert('Not live', json.message || 'This masjid is not broadcasting right now.');
+                setError(json.message || 'This masjid is not broadcasting right now.');
+                setShowApiError(true);
                 setMasjidIsLive(false);
                 return;
             }
-            const { token, url } = json.data;
 
+            const { token, url } = json.data;
             await AudioSession.startAudioSession();
 
             const room = new Room();
@@ -174,20 +169,19 @@ export default function Home({ route }: any) {
             // Audio-only room: LiveKit's native audio session on Android plays
             // subscribed remote tracks automatically — no manual attach needed.
             setListening(true);
-        } catch (e: any) {
-            console.error('listen error', e);
+        } catch {
             Alert.alert('Connection Error', 'Could not connect to the live Azan. Please try again.');
-            try { await AudioSession.stopAudioSession(); } catch (_) { }
+            try { await AudioSession.stopAudioSession(); } catch { }
         } finally {
             setConnecting(false);
         }
     };
 
     const stopListening = async () => {
-        try { roomRef.current?.disconnect(); } catch (_) { }
+        try { roomRef.current?.disconnect(); } catch { }
         roomRef.current = null;
         setListening(false);
-        try { await AudioSession.stopAudioSession(); } catch (_) { }
+        try { await AudioSession.stopAudioSession(); } catch { }
     };
 
     const handleSpeakerToggle = () => {
@@ -224,14 +218,25 @@ export default function Home({ route }: any) {
         return masjid.masjid_prayer_times[0];
     };
 
+    const getCurrentPrayer = (prayers: PrayerTime[]) => {
+        const current = new Date().toTimeString().slice(0, 8);
+        for (const prayer of prayers) {
+            if (prayer.prayer_time > current) {
+                return prayer.id;
+            }
+        }
+        return prayers[0]?.id;
+    };
+
     const nextPrayer = getNextPrayer();
+    const currentPrayerId = getCurrentPrayer(masjid?.masjid_prayer_times || []);
     const [timeLeft, setTimeLeft] = useState({
         hours: "00",
         minutes: "00",
         seconds: "00",
     });
 
-    const calculateTimeLeft = () => {
+    const calculateTimeLeft = useCallback(() => {
         if (!nextPrayer) return;
 
         const now = new Date();
@@ -260,46 +265,38 @@ export default function Home({ route }: any) {
             minutes: String(mins).padStart(2, "0"),
             seconds: String(secs).padStart(2, "0"),
         });
-    };
+    }, [nextPrayer]);
 
     useEffect(() => {
         calculateTimeLeft();
-        const interval = setInterval(() => {
-            calculateTimeLeft();
-        }, 1000);
+        const interval = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(interval);
-    }, [nextPrayer]);
-
-    const getCurrentPrayer = (prayers: PrayerTime[]) => {
-        const current = new Date().toTimeString().slice(0, 8);
-        for (const prayer of prayers) {
-            if (prayer.prayer_time > current) {
-                return prayer.id;
-            }
-        }
-        return prayers[0]?.id;
-    };
+    }, [calculateTimeLeft]);
 
     if (loading) {
         return <Loader size="large" color="#199b4d" />
     }
 
+    const closeApiError = () => {
+        setShowApiError(false);
+        setError('');
+    };
+
     return (
         <View style={styles.container}>
-            <ScrollView
-                showsVerticalScrollIndicator={false}
+            <ApiErrorAlert visible={showApiError} message={error} onClose={closeApiError} />
+
+            <ScrollView showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#199b4d']} tintColor="#199b4d" />
                 }
             >
-                <ImageBackground
-                    source={{
-                        uri: `https://slogan-mud-curing.ngrok-free.dev/storage/${masjid?.image}`
-                    }}
-                    style={styles.hero}
-                    imageStyle={styles.heroImage}
-                />
 
+                <ImageBackground source={{ uri: `${IMAGE_BASE_URL}${masjid?.image}` }} style={styles.hero} imageStyle={styles.heroImage}>
+                    <View style={styles.logoutOverlay}>
+                        <Logout />
+                    </View>
+                </ImageBackground>
                 <View style={styles.bodyWrapper}>
 
                     {/* ── Live Azan banner — only shows when masjid has turned it on ── */}
@@ -311,15 +308,15 @@ export default function Home({ route }: any) {
                                     {masjid?.name} · {listening ? 'Listening now' : 'Tap to listen'}
                                 </Text>
                             </View>
-                            <TouchableOpacity
-                                onPress={handleSpeakerToggle}
-                                style={styles.liveSpeakerButton}
-                                disabled={connecting}
-                            >
+                            <TouchableOpacity onPress={handleSpeakerToggle} style={styles.liveSpeakerButton} disabled={connecting}>
                                 {connecting ? (
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
-                                    <Text style={{ fontSize: 22 }}>{listening ? '🔊' : '🔇'}</Text>
+                                    <Text style={{ fontSize: 22 }}>{listening ? (
+                                        <Volume2 size={22} color="#fff" />
+                                    ) : (
+                                        <VolumeX size={22} color="#fff" />
+                                    )}</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -327,7 +324,7 @@ export default function Home({ route }: any) {
 
                     <View style={styles.card}>
                         <Text style={styles.prayerTime}>
-                            {masjid?.name}
+                            {masjid?.name ? masjid.name.charAt(0).toUpperCase() + masjid.name.slice(1) : ''}
                         </Text>
 
                         <Text style={styles.nextPrayer}>NEXT SALAH</Text>
@@ -365,12 +362,23 @@ export default function Home({ route }: any) {
                     {/* Mosque Card */}
                     <View style={styles.mosqueCard}>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.mosqueText}>🕌 {masjid?.name}</Text>
-                            <Text style={styles.mosqueSubText}>📍 {masjid?.address_line_one}, {masjid?.address_line_two}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <FontAwesome5 name="mosque" size={15} color="#199b4d" />
+                                <Text style={styles.mosqueText}>
+                                    {masjid?.name ? masjid.name.charAt(0).toUpperCase() + masjid.name.slice(1) : ''}
+                                </Text>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                                <MapPin size={16} color="#199b4d" />
+                                <Text style={[styles.mosqueSubText, { flex: 1 }]}>
+                                    {masjid?.address_line_one}, {masjid?.address_line_two}
+                                </Text>
+                            </View>
                         </View>
-                        <View style={styles.distancePill}>
+                        {/* <View style={styles.distancePill}>
                             <Text style={styles.distance}>3.0 km</Text>
-                        </View>
+                        </View> */}
                     </View>
 
                     {/* Today's Prayers */}
@@ -385,57 +393,34 @@ export default function Home({ route }: any) {
                             showsVerticalScrollIndicator={false}
                             scrollEnabled={false}
                             renderItem={({ item }) => {
-                                const activePrayer = item.id === getCurrentPrayer(masjid?.masjid_prayer_times || []);
+                                const activePrayer = item.id === currentPrayerId;
                                 return (
-                                    <View
-                                        style={[
-                                            styles.prayerCard,
-                                            activePrayer && styles.activePrayerCard,
-                                        ]}
-                                    >
+                                    <View style={[styles.prayerCard, activePrayer && styles.activePrayerCard]}>
                                         <View style={styles.leftSection}>
-                                            <View
-                                                style={[
-                                                    styles.dot, activePrayer && { backgroundColor: '#fff' },
-                                                ]}
-                                            />
-
-                                            <Text
-                                                style={[
-                                                    styles.allPrayerName, activePrayer && { color: '#fff' },
-                                                ]}
-                                            >
+                                            <View style={[styles.dot, activePrayer && { backgroundColor: '#fff' }]} />
+                                            <Text style={[styles.allPrayerName, activePrayer && { color: '#fff' }]}>
                                                 {item.prayer_name.charAt(0).toUpperCase() + item.prayer_name.slice(1)}
                                             </Text>
                                         </View>
 
                                         <View style={styles.timeSection}>
-                                            <Text
-                                                style={[
-                                                    styles.azanText, activePrayer && { color: '#eafff0' },
-                                                ]}
-                                            >
+                                            <Text style={[styles.azanText, activePrayer && { color: '#eafff0' }]}>
                                                 Azan — {formatTime(item.adhan_time)}
                                             </Text>
 
-                                            <Text
-                                                style={[
-                                                    styles.allPrayerTime, activePrayer && { color: '#fff' },
-                                                ]}
-                                            >
+                                            <Text style={[styles.allPrayerTime, activePrayer && { color: '#fff' }]}>
                                                 {formatTime(item.prayer_time)}
                                             </Text>
                                         </View>
 
-                                        <TouchableOpacity
-                                            onPress={() =>
-                                                toggleMute(item.id)
-                                            }
-                                            style={styles.muteButton}
-                                        >
-                                            <Text style={{ fontSize: 20 }}>
-                                                {mutedPrayers.includes(item.id) ? '🔇' : '🔊'}
-                                            </Text>
+                                        <TouchableOpacity style={styles.muteButton} onPress={() => toggleMute(item.id)} disabled={togglingId !== null}>
+                                            {togglingId === item.id ? (
+                                                <ActivityIndicator size="small" color={activePrayer ? '#fff' : '#199b4d'}/>
+                                            ) : mutedPrayers.includes(item.id) ? (
+                                                <VolumeX size={22} color={activePrayer ? '#fff' : '#199b4d'} />
+                                            ) : (
+                                                <Volume2 size={22} color={activePrayer ? '#fff' : '#199b4d'} />
+                                            )}
                                         </TouchableOpacity>
                                     </View>
                                 );
@@ -763,5 +748,15 @@ const styles = StyleSheet.create({
 
     muteButton: {
         padding: 6,
+    },
+
+    logoutOverlay: {
+        position: 'absolute',
+        top: 15,
+        right: 15,
+        zIndex: 10,
+        // backgroundColor: 'rgba(0,0,0,0.35)',
+        borderRadius: 20,
+        // padding: 3,
     },
 });

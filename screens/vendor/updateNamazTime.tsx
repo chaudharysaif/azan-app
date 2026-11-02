@@ -16,9 +16,9 @@ import {
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import API from '../api/endpoints';
+import { fetchMasjidDetails } from '../api/api';
 import BackButton from '../../components/back-button';
 
-const API_BASE = 'https://slogan-mud-curing.ngrok-free.dev/api';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const PRAYER_EMOJIS: Record<string, string> = {
@@ -103,7 +103,7 @@ function getCurrentPrayer(prayers: PrayerTime[]): string | null {
     return nextPrayer;
 }
 
-export default function UpdateNamazTime({ route, navigation }: any) {
+export default function UpdateNamazTime({ route }: any) {
     const { masjidId } = route.params;
     const [masjid, setMasjid] = useState<MasjidData | null>(null);
     const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
@@ -117,10 +117,7 @@ export default function UpdateNamazTime({ route, navigation }: any) {
         else setLoading(true);
 
         try {
-            const response = await fetch(API.GET_MASJID_DETAILS(masjidId), {
-                headers: { 'ngrok-skip-browser-warning': 'true' },
-            });
-            const json = await response.json();
+            const json = await fetchMasjidDetails(masjidId);
             if (json.status === 'success' && json.data) {
                 setMasjid(json.data);
                 const times: PrayerTime[] = json.data.masjid_prayer_times || [];
@@ -129,7 +126,7 @@ export default function UpdateNamazTime({ route, navigation }: any) {
             } else {
                 Alert.alert('Error', 'Could not load masjid data.');
             }
-        } catch (error) {
+        } catch {
             Alert.alert('Network Error', 'Failed to fetch masjid data. Please try again.');
         } finally {
             setLoading(false);
@@ -195,11 +192,11 @@ export default function UpdateNamazTime({ route, navigation }: any) {
             const json = await response.json();
             if (json.status === 'success') {
                 Alert.alert('Saved', 'Namaz times updated successfully. All followers will be notified.');
-                fetchMasjidData(); // refresh to get server-confirmed data
+                fetchMasjidData();
             } else {
                 Alert.alert('Save Failed', json.message || 'An error occurred while saving.');
             }
-        } catch (error) {
+        } catch {
             Alert.alert('Network Error', 'Failed to save namaz times. Please try again.');
         } finally {
             setSaving(false);

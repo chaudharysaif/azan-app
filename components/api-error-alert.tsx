@@ -14,18 +14,9 @@ type ApiErrorAlertProps = {
     onClose: () => void;
 };
 
-const ApiErrorAlert = ({
-    visible,
-    message,
-    onClose,
-}: ApiErrorAlertProps) => {
+const ApiErrorAlert = ({ visible, message, onClose}: ApiErrorAlertProps) => {
     return (
-        <Modal
-            transparent
-            visible={visible}
-            animationType="fade"
-            onRequestClose={onClose}
-        >
+        <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
             <View style={styles.overlay}>
                 <View style={styles.alertBox}>
 

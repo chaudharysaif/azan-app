@@ -1,11 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, FlatList, StyleSheet, StatusBar, SafeAreaView, Image, ActivityIndicator} from "react-native";
-import API from "./api/endpoints";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, StatusBar, SafeAreaView, Image } from "react-native";
+import API, { IMAGE_BASE_URL } from "./api/endpoints";
+import { apiRequest } from "./api/api";
 import Loader from "../components/loader";
-import BackButton from "../components/back-button";
-import { Search } from "lucide-react-native";
+import Header from '../components/header';
+import { MapPin, Search } from "lucide-react-native";
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 type Masjid = {
     id: number;
@@ -19,8 +21,6 @@ type Masjid = {
     following: boolean;
 };
 
-const PinIcon = () => <Text style={{ fontSize: 13 }}>📍</Text>;
-
 type MasjidCardProps = {
     item: Masjid;
 };
@@ -33,32 +33,25 @@ function MasjidCard({ item }: MasjidCardProps) {
             <TouchableOpacity
                 onPress={async () => {
                     try {
-                        await AsyncStorage.setItem('selectedMasjidId',
-                            item.id.toString()
-                        );
+                        await AsyncStorage.setItem('selectedMasjidId', item.id.toString());
                         navigation.navigate("MainTabs", {
                             screen: "Home",
                             params: {
                                 masjidId: item.id,
                             },
                         });
-                    } catch (error) {
-                        console.log('Storage Error:', error);
+                    } catch {
+                        // navigation still works if persistence fails
                     }
                 }}
             >
-                <Image
-                    source={{
-                        uri: `https://slogan-mud-curing.ngrok-free.dev/storage/${item?.image}`
-                    }}
-                    style={styles.masjidImage}
-                />
-
+                <Image source={{ uri: `${IMAGE_BASE_URL}${item?.image}` }} style={styles.masjidImage} />
                 <View style={styles.cardInfo}>
-                    <Text style={styles.masjidName}>{item.name}</Text>
-
+                    <Text style={styles.masjidName}>
+                        <FontAwesome5 name="mosque" size={15} color="#199b4d" /> {item.name ? item.name.charAt(0).toUpperCase() + item.name.slice(1) : ''}
+                    </Text>
                     <View style={styles.locationRow}>
-                        <PinIcon />
+                        <MapPin size={16} color="#199b4d" />
                         <Text style={styles.locationText}>
                             {item.address_line_one}, {item.address_line_two}
                         </Text>
@@ -69,46 +62,35 @@ function MasjidCard({ item }: MasjidCardProps) {
     );
 }
 
-export default function FindMasjidScreen({ navigation }: { navigation: any }) {
-    const [activeTab, setActiveTab] = useState("Nearby");
+export default function FindMasjidScreen() {
     const [search, setSearch] = useState("");
     const [masjids, setMasjids] = useState<Masjid[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchMasjid(search, false);
+        await fetchMasjid(search);
         setRefreshing(false);
     };
 
-    const fetchMasjid = async (query = "", isInitialLoad = false) => {
+    const fetchMasjid = async (query = "") => {
         try {
-            if (isInitialLoad) {
-                setLoading(true);
-            }
-            const response = await fetch(`${API.GET_MASJIDS}?q=${encodeURIComponent(query)}`,);
-            // `https://slogan-mud-curing.ngrok-free.dev/api/user/masjid?q=${encodeURIComponent(query)}`
-            const data = await response.json();
-            console.log('Fetched Masjids:', data.data.data);
-            setMasjids(data.data.data || []);
-            setNextPageUrl(data.data.next_page_url);
-        } catch (error) {
-            console.log(error);
+            const data = await apiRequest(
+                `${API.GET_MASJIDS}?q=${encodeURIComponent(query)}`,
+            );
+            setMasjids(data?.data?.data || []);
+        } catch {
+            // keep the previously loaded list when a search fails
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchMasjid(search);
-    }, []);
-
-    useEffect(() => {
         const delayDebounce = setTimeout(() => {
             fetchMasjid(search);
-        }, 500);
+        }, search ? 500 : 0);
         return () => clearTimeout(delayDebounce);
     }, [search]);
 
@@ -122,15 +104,11 @@ export default function FindMasjidScreen({ navigation }: { navigation: any }) {
 
             {/* Header */}
             <View style={styles.header}>
-                <View style={styles.headerRow}>
-                    <BackButton />
-                    <Text style={styles.headerTitle}>Find Masjid</Text>
-                    <View style={{ width: 36 }} />
-                </View>
+                <Header title="Search Masjid" />
 
                 {/* Search Bar */}
                 <View style={styles.searchBar}>
-                    <Text style={styles.searchIcon}><Search color="#199b4d"/></Text>
+                    <Text style={styles.searchIcon}><Search color="#199b4d" /></Text>
                     <TextInput
                         value={search}
                         onChangeText={setSearch}
@@ -143,8 +121,7 @@ export default function FindMasjidScreen({ navigation }: { navigation: any }) {
             </View>
 
             {/* Cards */}
-            <FlatList
-                data={masjids}
+            <FlatList data={masjids}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => <MasjidCard item={item} />}
                 contentContainerStyle={styles.listContent}
@@ -158,7 +135,6 @@ export default function FindMasjidScreen({ navigation }: { navigation: any }) {
 
 const GREEN = "#199b4d";
 const GREEN_LIGHT = "#D6F0E0";
-const GREEN_MID = "#B5E3C7";
 
 const styles = StyleSheet.create({
     safe: {
@@ -169,27 +145,10 @@ const styles = StyleSheet.create({
     // ── Header ──────────────────────────────────────────────
     header: {
         backgroundColor: GREEN,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 24,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-    },
-
-    headerRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 16,
-    },
-
-    headerTitle: {
-        flex: 1,
-        textAlign: "center",
-        fontSize: 22,
-        fontWeight: "700",
-        color: "#fff",
-        letterSpacing: 0.3,
+        padding: 20,
+        paddingLeft: 20,
+        borderBottomLeftRadius: 25,
+        borderBottomRightRadius: 25,
     },
 
     searchBar: {
@@ -198,7 +157,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderRadius: 14,
         paddingHorizontal: 14,
-        paddingVertical: 10,
+        paddingVertical: 8,
+        marginTop: 10,
         shadowColor: "#000",
         shadowOpacity: 0.08,
         shadowRadius: 6,

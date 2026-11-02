@@ -1,23 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
-import { useNavigation } from '@react-navigation/native';
 import API from './api/endpoints';
-import BackButton from '../components/back-button';
+import { apiRequest } from './api/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Header from '../components/header';
 
 export default function Tasbeeh() {
-  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
   const [tasbeehCount, setTasbeehCount] = useState(0);
+  const [isCountLoaded, setIsCountLoaded] = useState(false);
+  const STORAGE_KEY = 'tasbeeh_count';
   const [currentZikr, setCurrentZikr] = useState<any>(null);
   const [zikrList, setZikrList] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,12 +21,11 @@ export default function Tasbeeh() {
 
   const getZikr = async () => {
     try {
-      const response = await fetch(API.GET_DUA);
-      const data = await response.json();
+      const data = await apiRequest(API.GET_DUA);
       setCurrentZikr(data.data[0]);
       setZikrList(data.data);
-    } catch (error) {
-      console.log(error);
+    } catch {
+      // offline — keep whatever is already loaded
     } finally {
       setLoading(false);
     }
@@ -59,10 +52,42 @@ export default function Tasbeeh() {
   };
 
   const MAX_COUNT = 99999;
+  useEffect(() => {
+    const loadTasbeehCount = async () => {
+      try {
+        const savedCount = await AsyncStorage.getItem(STORAGE_KEY);
+        if (savedCount !== null) {
+          setTasbeehCount(Number(savedCount));
+        }
+      } catch {
+        // start from zero if storage is unavailable
+      } finally {
+        setIsCountLoaded(true);
+      }
+    };
+
+    loadTasbeehCount();
+  }, []);
+
+  useEffect(() => {
+    if (!isCountLoaded) return;
+    const saveTasbeehCount = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, String(tasbeehCount));
+      } catch {
+        // saving is best-effort; the in-memory count keeps working
+      }
+    };
+
+    saveTasbeehCount();
+  }, [tasbeehCount, isCountLoaded]);
+
+  // Increment Tasbeeh counter
   const tasbeehCounter = () => {
     setTasbeehCount(prev => Math.min(prev + 1, MAX_COUNT));
   };
 
+  // Reset Tasbeeh counter
   const resetTasbeehCounter = () => {
     setTasbeehCount(0);
   };
@@ -77,25 +102,13 @@ export default function Tasbeeh() {
 
   return (
     <ScrollView style={styles.container} refreshControl={
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        colors={['#199b4d']}
-        tintColor="#199b4d"
-      />
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#199b4d']} tintColor="#199b4d" />
     }
     >
 
       <View style={styles.header}>
-        {/* <BackButton /> */}
-
-        <Text style={styles.headerTitle}>
-          Tasbeeh
-        </Text>
-
-        <View style={{ width: 30 }} />
+        <Header title="Tasbeeh" />
       </View>
-
 
       {/* TOP TABS */}
       <View style={styles.tabContainer}>
@@ -147,23 +160,14 @@ export default function Tasbeeh() {
                 <Text style={styles.bigCount}>
                   {tasbeehCount.toLocaleString('en-IN')}
                 </Text>
-
                 <View style={styles.counterDivider} />
-
-                <Text style={styles.limitText}>
-                  / 99,999
-                </Text>
-
-                <Text style={styles.tapHint}>
-                  Tap to count
-                </Text>
-
+                <Text style={styles.limitText}>/ 99,999</Text>
+                <Text style={styles.tapHint}>Tap to count</Text>
               </View>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.resetCounterButton}
+          <TouchableOpacity style={styles.resetCounterButton}
             activeOpacity={0.8}
             onPress={resetTasbeehCounter}
           >
@@ -231,11 +235,11 @@ export default function Tasbeeh() {
               </Text>
             </TouchableOpacity>
 
-            {/* <TouchableOpacity style={styles.changeBtn}>
-          <Text style={styles.changeBtnText}>
-            Change Zikr
-          </Text> 
-        </TouchableOpacity> */}
+            <TouchableOpacity style={styles.changeBtn}>
+              <Text style={styles.changeBtnText}>
+                Change Zikr
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* LIST */}
@@ -289,12 +293,10 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: '#199b4d',
-    paddingTop: 25,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
+    paddingLeft: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
 
   back: {
@@ -305,7 +307,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
   },
 

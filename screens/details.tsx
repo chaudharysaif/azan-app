@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import API from './api/endpoints';
+import { IMAGE_BASE_URL } from './api/endpoints';
+import { fetchMasjidDetails } from './api/api';
 import { Masjid, PrayerTime } from '../models/masjid';
 
 export default function Details({ route }: any) {
@@ -40,28 +40,27 @@ export default function Details({ route }: any) {
         );
     };
 
-    const navigation = useNavigation<any>();
     const masjidId = route?.params?.masjidId;
     const [masjid, setMasjid] = useState<Masjid | null>(null);
 
-    const fetchMasjidDetails = async () => {
+    const loadMasjid = useCallback(async () => {
         if (!masjidId) return;
 
         try {
-            const response = await fetch(
-                API.GET_MASJID_DETAILS(masjidId),
-            );
-            const data = await response.json();
-            console.log("Masjid With Namaz Times:", data);
+            const data = await fetchMasjidDetails(masjidId);
             setMasjid(data.data);
-        } catch (error) {
-            console.log("Details API Error:", error);
+        } catch {
+            // keep the previous data; the screen stays usable offline
         }
-    };
+    }, [masjidId]);
 
     useEffect(() => {
-        fetchMasjidDetails();
-    }, [masjidId]);
+        loadMasjid();
+    }, [loadMasjid]);
+
+    const currentPrayerId = getCurrentPrayer(
+        masjid?.masjid_prayer_times || [],
+    );
 
 
     return (
@@ -69,7 +68,7 @@ export default function Details({ route }: any) {
 
             <ImageBackground
                 source={{
-                    uri: `https://slogan-mud-curing.ngrok-free.dev/storage/${masjid?.image}`
+                    uri: `${IMAGE_BASE_URL}${masjid?.image}`
                 }}
                 style={styles.hero}
                 imageStyle={{ borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}
@@ -109,12 +108,10 @@ export default function Details({ route }: any) {
                 data={masjid?.masjid_prayer_times || []}
                 keyExtractor={item => item.id.toString()}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 40 }}
+                contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => {
 
-                    const activePrayer = item.id === getCurrentPrayer(
-                        masjid?.masjid_prayer_times || []
-                    );
+                    const activePrayer = item.id === currentPrayerId;
 
                     return (
                         <View
@@ -171,6 +168,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F4F6F5',
+    },
+
+    listContent: {
+        paddingBottom: 40,
     },
 
     hero: {

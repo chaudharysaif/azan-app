@@ -11,7 +11,7 @@ export default function BackButton() {
     const navigation = useNavigation<any>();
     const { width } = useWindowDimensions();
 
-    const btnSize = Math.min(Math.max(width * 0.9, 32), 40);
+    const btnSize = Math.min(Math.max(width * 0.09, 32), 40);
     const iconSize = Math.min(Math.max(width * 0.045, 16), 20);
     const radius = Math.round(btnSize * 0.27);
 

@@ -1,9 +1,8 @@
-import react, { useState } from 'react';
-import { Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Button, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Alert } from 'react-native';
 import BackButton from '../../components/back-button';
 import API from '../api/endpoints';
-import ErrorMessage from '../../components/error-message';
-import ApiErrorAlert from '../../components/api-error-alert';
+import { apiRequest } from '../api/api';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -12,10 +11,6 @@ export default function Announcement() {
     const [text, setText] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const [uniqueIdError, setUniqueIdError] = useState('');
-    const [passwordError, setPasswordError] = useState('');
-    const [apiError, setApiError] = useState('');
-    const [showApiError, setShowApiError] = useState(false);
 
     const sendAnnouncement = async () => {
         if (!text.trim()) {
@@ -31,23 +26,15 @@ export default function Announcement() {
         setLoading(true);
 
         try {
-            const response = await fetch(API.MASJID_ANNOUNCEMENTS, {
+            const data = await apiRequest(API.MASJID_ANNOUNCEMENTS, {
                 method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     title: text.trim(),
                     description: description.trim(),
                 }),
             });
 
-            const data = await response.json();
-
-            console.log('Announcement response:', data);
-
-            if (data.status === 'success') {
+            if (data?.status === 'success') {
                 Alert.alert(
                     'Success',
                     'Announcement published successfully.'
@@ -58,15 +45,15 @@ export default function Announcement() {
             } else {
                 Alert.alert(
                     'Error',
-                    data.message || 'Failed to publish announcement.'
+                    data?.message || 'Failed to publish announcement.'
                 );
             }
         } catch (error) {
-            console.error('Announcement error:', error);
-
             Alert.alert(
                 'Error',
-                'Something went wrong. Please check your internet connection.'
+                error instanceof Error
+                    ? error.message
+                    : 'Something went wrong. Please check your internet connection.'
             );
         } finally {
             setLoading(false);
@@ -116,9 +103,13 @@ export default function Announcement() {
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.submitButton} onPress={sendAnnouncement}>
+                    <TouchableOpacity
+                        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                        onPress={sendAnnouncement}
+                        disabled={loading}
+                    >
                         <Text style={styles.submitButtonText}>
-                            📤 Publish Announcement
+                            {loading ? 'Publishing…' : '📤 Publish Announcement'}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -239,6 +230,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 4,
+    },
+
+    submitButtonDisabled: {
+        opacity: 0.6,
     },
 
     submitButtonText: {

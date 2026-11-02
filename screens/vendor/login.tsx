@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
 import API from '../api/endpoints';
 import ErrorMessage from '../../components/error-message';
 import ApiErrorAlert from '../../components/api-error-alert';
-import { getDeviceId } from '../../components/deviceid';
 import DeviceInfo from 'react-native-device-info';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Responsive helpers ───────────────────────────────────────────────────────
 const { width: SW, height: SH } = Dimensions.get('window');
@@ -47,7 +46,7 @@ export default function MasjidLogin() {
             const response = await fetch(API.MASJID_LOGIN, {
                 method: 'POST',
                 headers: {
-                    Accept: 'application/json',
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'ngrok-skip-browser-warning': 'true',
                 },
@@ -55,8 +54,23 @@ export default function MasjidLogin() {
             }
             );
             const data = await response.json();
+            console.log('Login response:', data);
             if (response.ok && data.status === 'success') {
-                navigation.navigate('Dashboard', { masjidId: data.data.id });
+                const { token, masjid } = data.data;
+                console.log('Token:', token);
+                console.log('Masjid ID:', masjid.id);
+                await AsyncStorage.setItem('token', token);
+                await AsyncStorage.setItem('masjidId', String(masjid.id));
+
+                const savedToken = await AsyncStorage.getItem('token');
+                const savedMasjidId = await AsyncStorage.getItem('masjidId');
+
+                console.log('Saved Token:', savedToken);
+                console.log('Saved Masjid ID:', savedMasjidId);
+
+                navigation.navigate('Dashboard', {
+                    masjidId: masjid.id,
+                });
                 return;
             }
             setApiError(data.message || 'Invalid Unique ID or Password.');
@@ -67,12 +81,10 @@ export default function MasjidLogin() {
         }
     };
 
-    const closeApiError = () => { setShowApiError(false); setApiError(''); };
+    const closeApiError = () => { setShowApiError(false); setApiError('') };
 
     return (
         <View style={S.container}>
-
-            {/* Top section */}
             <View style={S.topSection}>
                 <Image
                     source={require('../../assets/images/icon.png')}
@@ -83,9 +95,7 @@ export default function MasjidLogin() {
                 <Text style={S.subHeading}>Login to manage your Masjid dashboard.</Text>
             </View>
 
-            {/* Card */}
             <View style={S.card}>
-
                 <Text style={S.label}>Unique ID</Text>
                 <TextInput
                     style={[S.input, uniqueIdError ? S.inputError : null]}
@@ -93,9 +103,11 @@ export default function MasjidLogin() {
                     placeholderTextColor="#999"
                     autoCapitalize="none"
                     value={uniqueId}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                         setUniqueId(text);
-                        if (text.trim()) setUniqueIdError('');
+                        if (text.trim()) {
+                            setUniqueIdError('');
+                        }
                     }}
                 />
                 <ErrorMessage message={uniqueIdError} />
@@ -107,9 +119,11 @@ export default function MasjidLogin() {
                     placeholderTextColor="#999"
                     secureTextEntry
                     value={password}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                         setPassword(text);
-                        if (text.trim()) setPasswordError('');
+                        if (text.trim()) {
+                            setPasswordError('');
+                        }
                     }}
                 />
                 <ErrorMessage message={passwordError} />
@@ -126,25 +140,46 @@ export default function MasjidLogin() {
 
 const S = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F7FA', paddingHorizontal: wp(6) },
-
-    // Top section
     topSection: { alignItems: 'center', marginTop: hp(8), marginBottom: hp(4) },
     logo: { width: wp(27), height: wp(27), marginBottom: hp(1.8) },
     heading: { fontSize: wp(7.5), fontWeight: 'bold', color: GREEN },
-    subHeading: { fontSize: wp(3.8), color: '#666', textAlign: 'center', marginTop: hp(1), paddingHorizontal: wp(6) },
-
-    // Card
-    card: { backgroundColor: '#fff', borderRadius: wp(4.5), padding: wp(5.5), elevation: 5, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
-
-    // Labels
+    subHeading: {
+        fontSize: wp(3.8),
+        color: '#666',
+        textAlign: 'center',
+        marginTop: hp(1),
+        paddingHorizontal: wp(6),
+    },
+    card: {
+        backgroundColor: '#fff',
+        borderRadius: wp(4.5),
+        padding: wp(5.5),
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 3 },
+    },
     label: { fontSize: wp(3.8), fontWeight: '600', color: GREEN, marginBottom: hp(1) },
     passwordLabel: { marginTop: hp(2.2) },
-
-    // Input
-    input: { height: hp(6), borderWidth: 1, borderColor: '#D8D8D8', borderRadius: wp(3), paddingHorizontal: wp(4), fontSize: wp(4), backgroundColor: '#FAFAFA', color: '#222' },
+    input: {
+        height: hp(6),
+        borderWidth: 1,
+        borderColor: '#D8D8D8',
+        borderRadius: wp(3),
+        paddingHorizontal: wp(4),
+        fontSize: wp(4),
+        backgroundColor: '#FAFAFA',
+        color: '#222',
+    },
     inputError: { borderColor: '#D32F2F' },
-
-    // Button
-    loginButton: { marginTop: hp(3.5), backgroundColor: GREEN, height: hp(5), borderRadius: wp(3.5), justifyContent: 'center', alignItems: 'center' },
+    loginButton: {
+        marginTop: hp(3.5),
+        backgroundColor: GREEN,
+        height: hp(5),
+        borderRadius: wp(3.5),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     loginButtonText: { color: '#fff', fontSize: wp(4.5), fontWeight: '700' },
 });

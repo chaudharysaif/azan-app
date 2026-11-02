@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StatusBar, useColorScheme, Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { House, Compass, Search as SearchIcon, CircleDot } from 'lucide-react-native';
-import { PermissionsAndroid, Platform } from 'react-native';
-import { getDeviceId } from './components/deviceid';
 import Azan from './screens/azan';
 import Login from './screens/vendor/login';
-import VerifyOtp from './screens/verifyotp';
+// import VerifyOtp from './screens/verifyotp';
 import Home from './screens/home';
 import Tasbeeh from './screens/tasbeeh';
 import Search from './screens/search';
@@ -19,56 +17,57 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Dashboard from './screens/vendor/dashboard';
 import UpdateNamazTime from './screens/vendor/updateNamazTime';
 import Announcement from './screens/vendor/announcement';
-import notifee, { AndroidImportance } from '@notifee/react-native';
-import { getMessaging, onMessage } from '@react-native-firebase/messaging';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const TAB_ICONS: Record<string, React.ComponentType<any>> = {
+  Home: House,
+  Search: SearchIcon,
+  Qibla: Compass,
+  Tasbeeh: CircleDot,
+};
+
+const renderTabBarIcon =
+  (routeName: string) =>
+  ({ color, size }: { color: string; size: number }) => {
+    const Icon = TAB_ICONS[routeName];
+    return Icon ? <Icon color={color} size={size} /> : null;
+  };
+
 function MainTabs({ initialTab }: any) {
   const [showModal, setShowModal] = useState(false);
-  const navigation = useNavigation<any>();
 
   return (
     <>
-      <Tab.Navigator initialRouteName={initialTab} screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: '#199b4d',
-        tabBarInactiveTintColor: 'gray',
-
-        tabBarIcon: ({ color, size }) => {
-          switch (route.name) {
-            case 'Home':
-              return <House color={color} size={size} />;
-
-            case 'Search':
-              return <SearchIcon color={color} size={size} />;
-
-            case 'Qibla':
-              return <Compass color={color} size={size} />;
-
-            case 'Tasbeeh':
-              return <CircleDot color={color} size={size} />;
-
-            default:
-              return null;
-          }
-        },
-      })}
+      <Tab.Navigator
+        initialRouteName={initialTab}
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: '#199b4d',
+          tabBarInactiveTintColor: 'gray',
+          tabBarIcon: renderTabBarIcon(route.name),
+        })}
       >
         <Tab.Screen name="Home" component={Home} listeners={({ navigation }) => ({
           tabPress: async (e) => {
             e.preventDefault();
-            const id = await AsyncStorage.getItem('selectedMasjidId');
-            if (!id) {
+            try {
+              // await AsyncStorage.removeItem('selectedMasjidId');
+              const id = await AsyncStorage.getItem('selectedMasjidId');
+              if (!id) {
+                setShowModal(true);
+                navigation.navigate('Search');
+              } else {
+                navigation.navigate('Home');
+              }
+            } catch {
               setShowModal(true);
-              navigation.navigate("Search");
-            } else {
-              navigation.navigate("Home");
             }
           },
         })}
         />
+
         <Tab.Screen name="Search" component={Search} />
         <Tab.Screen name="Qibla" component={Qibla} />
         <Tab.Screen name="Tasbeeh" component={Tasbeeh} />
@@ -77,10 +76,15 @@ function MainTabs({ initialTab }: any) {
       <Modal transparent visible={showModal} animationType="fade" onRequestClose={() => setShowModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
-            <Text style={styles.title}>Select Masjid First</Text>
-            <Text style={styles.message}>
-              Please search and select your Masjid first to access the Home page.
+            <Text style={styles.title}>
+              Select Masjid First
             </Text>
+
+            <Text style={styles.message}>
+              Please search and select your Masjid first to
+              access the Home page.
+            </Text>
+
             <TouchableOpacity style={styles.button} onPress={() => setShowModal(false)}>
               <Text style={styles.buttonText}>OK</Text>
             </TouchableOpacity>
@@ -93,24 +97,18 @@ function MainTabs({ initialTab }: any) {
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
-  const [loading, setLoading] = useState(true);
-  const [initialTab, setInitialTab] = useState("Search");
-
-  // if (loading) {
-  //   return null;
-  // }
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top', 'right', 'left']}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left']}>
         <NavigationContainer>
           <StatusBar translucent={true} backgroundColor="transparent" barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Azan" component={Azan} />
             <Stack.Screen name="Details" component={Details} />
             <Stack.Screen name="MainTabs">
-              {props => (
-                <MainTabs {...props} initialTab={initialTab} />
+              {(props: any) => (
+                <MainTabs {...props} initialTab={props.route.params?.initialTab || 'Search'} />
               )}
             </Stack.Screen>
             <Stack.Screen name="Login" component={Login} />
@@ -128,6 +126,11 @@ function App() {
 export default App;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
