@@ -15,8 +15,13 @@ export const API = {
   // Vendor
   MASJID_LOGIN: `${BASE_URL}/masjid/login`,
   MASJID_PROFILE: `${BASE_URL}/masjid`,
-  UPDATE_NAMAZ_TIME: (id: number | string) => `${BASE_URL}/vendor/masjid/${id}/prayer-times`,
+  MASJID_DETAILS: (id: number | string) => `${BASE_URL}/masjid/details/${id}`,
+  UPDATE_NAMAZ_TIME: (id: number | string) => `${BASE_URL}/masjid/${id}/prayer-times`,
   PRAYER_TIMES: `${BASE_URL}/masjid/prayer-times`,
+  START_LIVE_AZAN: `${BASE_URL}/masjid/live/start`,
+  STOP_LIVE_AZAN: `${BASE_URL}/masjid/live/stop`,
+  LIVE_STATUS: (id: number | string) => `${BASE_URL}/masjid/live/status/${id}`,
+  LIVE_TOKEN: (id: number | string) => `${BASE_URL}/masjid/live/token/${id}`,
   MASJID_ANNOUNCEMENTS: `${BASE_URL}/masjid/announcements`,
 };
 

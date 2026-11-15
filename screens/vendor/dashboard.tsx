@@ -1,24 +1,9 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    PermissionsAndroid,
-    RefreshControl,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { ActivityIndicator, Alert, Animated, Dimensions, Easing, PermissionsAndroid, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View} from "react-native";
 import { Room, RoomEvent, createLocalAudioTrack, Track } from "livekit-client";
-import { API_BASE } from '../api/endpoints';
+import API, { API_BASE } from '../api/endpoints';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Responsive helper ────────────────────────────────────────────────────────
 // wp(4) means "4% of the screen width" — works on every screen size automatically
@@ -95,7 +80,6 @@ function LiveBadge({ pulse, listenerCount }: { pulse: Animated.Value; listenerCo
 export default function Dashboard({ route }: any) {
     const navigation = useNavigation<any>();
     const { masjidId } = route.params;
-
     const [masjid, setMasjid] = useState<MasjidData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -103,7 +87,6 @@ export default function Dashboard({ route }: any) {
     const [isLive, setIsLive] = useState(false);
     const [liveStatus, setLiveStatus] = useState<'idle' | 'connecting' | 'streaming' | 'error'>('idle');
     const [listenerCount, setListenerCount] = useState(0);
-
     const roomRef = useRef<Room | null>(null);
     const pulseAnim = useRef(new Animated.Value(0)).current;
     const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
@@ -129,10 +112,19 @@ export default function Dashboard({ route }: any) {
     const fetchData = useCallback(async (isRefresh = false) => {
         isRefresh ? setRefreshing(true) : setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/masjid/details/${masjidId}`, {
-                headers: { 'ngrok-skip-browser-warning': 'true' },
+            console.log('Fetching masjid details:', masjidId);
+            const token = await AsyncStorage.getItem('token');
+            console.log('Retrieved Token:', token);
+            const res = await fetch(`https://slogan-mud-curing.ngrok-free.dev/api/masjid/details/${masjidId}`, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${token}`,
+                    'ngrok-skip-browser-warning': 'true',
+                },
             });
             const json = await res.json();
+            console.log('Fetched masjid details:', json);
             if (json.status === 'success' && json.data) {
                 setMasjid(json.data);
                 setNextPrayer(getNextPrayer(json.data.masjid_prayer_times || []));
@@ -167,9 +159,13 @@ export default function Dashboard({ route }: any) {
         if (!await requestMicPermission()) { setIsLive(false); return; }
         setLiveStatus('connecting');
         try {
-            const res = await fetch(`${API_BASE}/masjid/live/start`, {
+            const res = await fetch(API.START_LIVE_AZAN, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                    'Authorization': `Bearer ${await AsyncStorage.getItem('token')}`,
+                },
                 body: JSON.stringify({ masjid_id: masjidId }),
             });
             const json = await res.json();
@@ -213,7 +209,11 @@ export default function Dashboard({ route }: any) {
         try {
             await fetch(`${API_BASE}/masjid/live/stop`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                    'Authorization': `Bearer ${await AsyncStorage.getItem('token')}`
+                },
                 body: JSON.stringify({ masjid_id: masjidId }),
             });
         } catch {}
@@ -222,7 +222,9 @@ export default function Dashboard({ route }: any) {
     }, [masjidId]);
 
     // Stop the broadcast when the screen unmounts
-    useEffect(() => () => { stopStreaming(); }, [stopStreaming]);
+    useEffect(() => () => {
+        stopStreaming();
+    }, [stopStreaming]);
 
     const handleToggle = async (val: boolean) => {
         setIsLive(val);

@@ -40,8 +40,7 @@ function MainTabs({ initialTab }: any) {
 
   return (
     <>
-      <Tab.Navigator
-        initialRouteName={initialTab}
+      <Tab.Navigator initialRouteName={initialTab}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarActiveTintColor: '#199b4d',

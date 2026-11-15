@@ -47,13 +47,8 @@ export default function Azan() {
     };
 
     const handleMasjidPress = async () => {
-        console.log('Masjid button clicked');
-
         setLoadingMasjid(true);
-
         try {
-            console.log('Checking AsyncStorage...');
-
             const token = await AsyncStorage.getItem('token');
             const masjidId = await AsyncStorage.getItem('masjidId');
 
@@ -61,38 +56,34 @@ export default function Azan() {
             console.log('Retrieved Masjid ID:', masjidId);
 
             if (!token) {
-                console.log('Token not found');
+                console.log('Token not found. Navigating to Login');
                 navigation.navigate('Login');
                 return;
             }
-
-            console.log('Token found, calling profile API...');
 
             const response = await fetch(API.MASJID_PROFILE, {
                 method: 'GET',
                 headers: {
                     Accept: 'application/json',
                     Authorization: `Bearer ${token}`,
+                    'ngrok-skip-browser-warning': 'true',
                 },
             });
 
-            console.log('API status:', response.status);
-
-            const data = await response.json();
-
-            console.log('Profile response:', data);
+            const responseText = await response.text();
+            const data = JSON.parse(responseText);
+            console.log('API Response:', responseText);
 
             if (response.ok && data.status === 'success') {
                 navigation.navigate('Dashboard', {
-                    masjidId: data.data.masjid.id,
+                    masjidId: data.data.id,
                 });
             } else {
                 await AsyncStorage.removeItem('token');
                 navigation.navigate('Login');
             }
-
         } catch (error) {
-            console.log('Masjid error:', error);
+            console.log('Masjid API Error:', error);
             setApiError('Something went wrong. Please try again.');
             setShowApiError(true);
         } finally {

@@ -1,23 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-    StyleSheet,
-    Text,
-    View,
-    ScrollView,
-    TouchableOpacity,
-    ActivityIndicator,
-    RefreshControl,
-    Alert,
-    SafeAreaView,
-    StatusBar,
-    Modal,
-    Platform,
-    Dimensions,
-} from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, SafeAreaView, StatusBar, Modal, Platform, Dimensions} from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import API from '../api/endpoints';
 import { fetchMasjidDetails } from '../api/api';
 import BackButton from '../../components/back-button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -117,7 +104,16 @@ export default function UpdateNamazTime({ route }: any) {
         else setLoading(true);
 
         try {
-            const json = await fetchMasjidDetails(masjidId);
+            // const json = await fetchMasjidDetails(masjidId);
+            const response = await fetch(API.MASJID_DETAILS(masjidId), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                    'Authorization': `Bearer ${await AsyncStorage.getItem('token')}`
+                },
+            });
+            const json = await response.json();
             if (json.status === 'success' && json.data) {
                 setMasjid(json.data);
                 const times: PrayerTime[] = json.data.masjid_prayer_times || [];

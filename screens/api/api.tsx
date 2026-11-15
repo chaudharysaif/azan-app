@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from './endpoints';
 
 const defaultHeaders = {
@@ -13,7 +14,8 @@ const defaultHeaders = {
  * - throws a readable error for non-2xx responses
  */
 export async function apiRequest(url: string, options: RequestInit = {}): Promise<any> {
-    const response = await fetch(url, {...options,
+    const response = await fetch(url, {
+        ...options,
         headers: {
             ...defaultHeaders,
             ...(options.headers || {}),
@@ -36,9 +38,14 @@ export async function apiRequest(url: string, options: RequestInit = {}): Promis
 }
 
 /** Fetch a masjid (with prayer times). The API expects a POST body. */
-export async function fetchMasjidDetails(masjidId: number | string,deviceName?: string): Promise<any> {
+export async function fetchMasjidDetails(masjidId: number | string, deviceName?: string): Promise<any> {
     return apiRequest(API.GET_MASJID_DETAILS, {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+            'Authorization': `Bearer ${await AsyncStorage.getItem('token')}`
+        },
         body: JSON.stringify({
             masjid_id: masjidId,
             ...(deviceName ? { device_name: deviceName } : {}),
